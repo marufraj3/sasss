@@ -1,0 +1,20 @@
+[30-Jun-2024 03:59:43 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/ibajarco/public_html/config/database.php:18
+Stack trace:
+#0 {main}
+  thrown in /home/ibajarco/public_html/config/database.php on line 18
+[29-Aug-2025 19:24:03 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/smmpawc1/arzamart.xyz/config/database.php:18
+Stack trace:
+#0 {main}
+  thrown in /home/smmpawc1/arzamart.xyz/config/database.php on line 18
+[29-Aug-2025 19:24:03 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/smmpawc1/arzamart.xyz/config/mail.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/smmpawc1/arzamart.xyz/config/mail.php on line 16
+[29-Aug-2025 19:24:03 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/smmpawc1/arzamart.xyz/config/app.php:18
+Stack trace:
+#0 {main}
+  thrown in /home/smmpawc1/arzamart.xyz/config/app.php on line 18
+[29-Aug-2025 19:24:03 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/smmpawc1/arzamart.xyz/config/services.php:18
+Stack trace:
+#0 {main}
+  thrown in /home/smmpawc1/arzamart.xyz/config/services.php on line 18

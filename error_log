@@ -1,0 +1,5 @@
+[22-Nov-2024 16:29:50 Asia/Dhaka] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/bdshopyc/public_html/vendor/symfony/polyfill-mbstring/Mbstring.php on line 636
+[22-Nov-2024 16:29:52 Asia/Dhaka] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/bdshopyc/public_html/vendor/symfony/polyfill-mbstring/Mbstring.php on line 491
+[19-Aug-2025 20:27:21 UTC] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.1.0". You are running 7.4.33. in /home/smmpawc1/maruf.smmpaw.com/vendor/composer/platform_check.php on line 24
+[23-Aug-2025 13:02:01 Asia/Dhaka] PHP Fatal error:  Cannot declare class App\Http\Controllers\DashboardController, because the name is already in use in /home/smmpawc1/maruf.smmpaw.com/app/Http/Controllers/Admin/DashboardController.php on line 15
+[30-Aug-2025 13:55:38 Asia/Dhaka] PHP Fatal error:  Cannot use Str as Str because the name is already in use in /home/smmpawc1/arzamart.xyz/app/Http/Controllers/Admin/CampaignController.php on line 13
