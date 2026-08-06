@@ -12,6 +12,12 @@
         <!-- App favicon -->
 
         <link rel="shortcut icon" href="{{asset($generalsetting->favicon)}}" alt="Super Ecommerce Favicon" />
+        <link rel="manifest" href="{{ asset('manifest.webmanifest') }}" />
+        <meta name="theme-color" content="#087f5b" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <link rel="apple-touch-icon" href="{{ asset('img/logo.png') }}" />
         <meta name="author" content="Super Ecommerce" />
         <link rel="canonical" href="" />
         @stack('seo') 
@@ -57,6 +63,8 @@ header{
 .cs{
     background: white;
 }
+.mobile-commerce-nav{display:none}
+@media(max-width:767px){body{padding-bottom:72px}.mobile-commerce-nav{position:fixed;display:flex;align-items:center;justify-content:space-around;z-index:9999;bottom:0;left:0;right:0;height:64px;background:#fff;border-top:1px solid #dce9e2;box-shadow:0 -7px 20px rgba(15,45,32,.08)}.mobile-commerce-nav a{flex:1;text-align:center;text-decoration:none;color:#5e6e67;font-size:11px;font-weight:700}.mobile-commerce-nav i{display:block;font-size:18px;margin-bottom:2px;color:#087f5b}.mobile-commerce-nav .cart-badge{position:absolute;margin-left:-8px;margin-top:-6px;background:#e85d15;color:#fff;border-radius:99px;padding:1px 5px;font-size:10px}.mobile-commerce-nav a.active{color:#087f5b}.mobile-commerce-nav a.active i{color:#087f5b}}
 </style>
         @foreach($pixels as $pixel)
         <!-- Facebook Pixel Code -->
@@ -395,8 +403,13 @@ header{
     </div>
 </footer>
 
-       
-        
+        <nav class="mobile-commerce-nav" aria-label="Mobile navigation">
+            <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'active' : '' }}"><i class="fa fa-home"></i>Home</a>
+            <a href="{{ route('hotdeals') }}"><i class="fa fa-tags"></i>Offers</a>
+            <a href="#" onclick="document.querySelector('.msearch_keyword')?.focus(); window.scrollTo({top:0,behavior:'smooth'}); return false;"><i class="fa fa-search"></i>Search</a>
+            <a href="{{ route('customer.checkout') }}" class="position-relative"><i class="fa fa-shopping-bag"></i><span class="cart-badge mobile-nav-cart-count">{{ Cart::instance('shopping')->count() }}</span>Cart</a>
+            @if(Auth::guard('customer')->check())<a href="{{ route('customer.account') }}"><i class="fa fa-user"></i>Account</a>@else<a href="{{ route('customer.login') }}"><i class="fa fa-user"></i>Login</a>@endif
+        </nav>
 
         <div class="scrolltop" style="">
             <div class="scroll">
@@ -548,6 +561,8 @@ header{
                     success: function (data) {
                         if (data) {
                             $("#cart-qty").html(data);
+                            const cartNumber = $('<div>').html(data).find('.margin-shopping span').first().text();
+                            if (cartNumber) $('.mobile-nav-cart-count').text(cartNumber);
                         } else {
                             $("#cart-qty").empty();
                         }
@@ -761,6 +776,14 @@ header{
         }
     });
 </script>
+
+        <script>
+            if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+                window.addEventListener('load', function () {
+                    navigator.serviceWorker.register('{{ asset('sw.js') }}').catch(function () {});
+                });
+            }
+        </script>
 
         <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-K29C9BKJ"
         height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
