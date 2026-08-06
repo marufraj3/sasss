@@ -78,6 +78,13 @@
                         </div>
                     </div>
                     <!-- col end -->
+                    <div class="col-sm-4 mb-3"><label class="form-label">Primary Brand Color</label><input type="color" class="form-control form-control-color" name="primary_color" value="{{ $edit_data->primary_color ?: '#111111' }}"></div>
+                    <div class="col-sm-4 mb-3"><label class="form-label">Secondary Color</label><input type="color" class="form-control form-control-color" name="secondary_color" value="{{ $edit_data->secondary_color ?: '#ffffff' }}"></div>
+                    <div class="col-sm-4 mb-3"><label class="form-label">Hotline</label><input class="form-control" name="hotline" value="{{ $edit_data->hotline }}" placeholder="01XXXXXXXXX"></div>
+                    <div class="col-sm-6 mb-3"><label class="form-label">WhatsApp Number</label><input class="form-control" name="whatsapp" value="{{ $edit_data->whatsapp }}" placeholder="8801XXXXXXXXX"></div>
+                    <div class="col-sm-6 mb-3"><label class="form-label">Footer Text</label><input class="form-control" name="footer_text" value="{{ $edit_data->footer_text }}" placeholder="Short store footer text"></div>
+                    <div class="col-sm-6 mb-3"><label class="form-label">Delivery Policy</label><textarea class="form-control" name="delivery_policy" rows="3">{{ $edit_data->delivery_policy }}</textarea></div>
+                    <div class="col-sm-6 mb-3"><label class="form-label">Return Policy</label><textarea class="form-control" name="return_policy" rows="3">{{ $edit_data->return_policy }}</textarea></div>
                     
                     <div class="col-sm-6 mb-3">
                         <div class="form-group">

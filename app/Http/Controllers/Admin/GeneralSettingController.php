@@ -100,10 +100,17 @@ class GeneralSettingController extends Controller
     public function update(Request $request)
     {
         $this->validate($request, [
-            'name' => 'required'
+            'name' => 'required|string|max:55',
+            'primary_color' => 'nullable|string|max:20',
+            'secondary_color' => 'nullable|string|max:20',
+            'hotline' => 'nullable|string|max:50',
+            'whatsapp' => 'nullable|string|max:50',
+            'footer_text' => 'nullable|string',
+            'delivery_policy' => 'nullable|string',
+            'return_policy' => 'nullable|string',
         ]);
-        $update_data = GeneralSetting::find($request->id);
-        $input = $request->all();
+        $update_data = GeneralSetting::findOrFail($request->id);
+        $input = $request->except(['id', 'white_logo', 'dark_logo', 'favicon']);
         // new white logo
         $image = $request->file('white_logo');
         if($image){
