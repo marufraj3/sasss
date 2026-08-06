@@ -295,7 +295,7 @@ class CustomerController extends Controller
         $subtotal = (int) round(Cart::instance('shopping')->content()->sum(fn ($item) => $item->price * $item->qty));
         $coupon = Coupon::where('code', Str::upper(trim($data['code'])))->first();
 
-        if (! $coupon || ! $coupon->isAvailableFor($subtotal)) {
+        if (! $coupon || ! $coupon->isAvailableFor($subtotal) || ! $coupon->isApplicableToCart(Cart::instance('shopping')->content())) {
             Session::forget(['coupon', 'discount']);
             return back()->withErrors(['coupon' => 'এই coupon টি এখন ব্যবহারযোগ্য নয় অথবা আপনার cart-এর ন্যূনতম মূল্য পূরণ হয়নি।']);
         }
@@ -339,7 +339,7 @@ class CustomerController extends Controller
         $this->captureAbandonedCart($subtotal);
         if ($couponId = data_get(Session::get('coupon'), 'id')) {
             $coupon = Coupon::find($couponId);
-            if ($coupon && $coupon->isAvailableFor($subtotal)) {
+            if ($coupon && $coupon->isAvailableFor($subtotal) && $coupon->isApplicableToCart(Cart::instance('shopping')->content())) {
                 Session::put('discount', $coupon->discountFor($subtotal));
             } else {
                 Session::forget(['coupon', 'discount']);
@@ -395,7 +395,7 @@ class CustomerController extends Controller
                 // Lock coupon usage as well as stock so a limited-use code cannot be oversold.
                 if ($couponCode) {
                     $coupon = Coupon::where('code', $couponCode)->lockForUpdate()->first();
-                    if (! $coupon || ! $coupon->isAvailableFor($subtotal)) {
+                    if (! $coupon || ! $coupon->isAvailableFor($subtotal) || ! $coupon->isApplicableToCart($cartItems)) {
                         throw ValidationException::withMessages(['coupon' => 'এই coupon টি আর ব্যবহারযোগ্য নয়। আবার চেষ্টা করুন।']);
                     }
                     $discount = $coupon->discountFor($subtotal);
