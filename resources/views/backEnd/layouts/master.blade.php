@@ -384,6 +384,9 @@
                     <li>
                       <a href="{{route('customers.index')}}"><i data-feather="file-plus"></i> Customers</a>
                     </li>
+                    <li>
+                      <a href="{{route('customer-tags.index')}}"><i data-feather="tag"></i> Customer CRM Tags</a>
+                    </li>
                   </ul>
                 </div>
               </li>

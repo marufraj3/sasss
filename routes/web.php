@@ -36,6 +36,7 @@ use App\Http\Controllers\Admin\TagManagerController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\AbandonedCartController;
 use App\Http\Controllers\Admin\ReturnRequestController;
+use App\Http\Controllers\Admin\CustomerTagController;
 
 Auth::routes();
 
@@ -334,6 +335,11 @@ Route::group(['namespace'=>'Admin','middleware' => ['auth','lock','check_refer']
     Route::get('return-requests', [ReturnRequestController::class, 'index'])->name('return-requests.index');
     Route::post('return-requests/{returnRequest}/approve', [ReturnRequestController::class, 'approve'])->name('return-requests.approve');
     Route::post('return-requests/{returnRequest}/reject', [ReturnRequestController::class, 'reject'])->name('return-requests.reject');
+
+    // customer CRM tags
+    Route::get('customer-tags', [CustomerTagController::class, 'index'])->name('customer-tags.index');
+    Route::post('customer-tags', [CustomerTagController::class, 'store'])->name('customer-tags.store');
+    Route::delete('customer-tags/{customerTag}', [CustomerTagController::class, 'destroy'])->name('customer-tags.destroy');
    
     // settings route 
     Route::get('settings/manage', [GeneralSettingController::class,'index'])->name('settings.index');

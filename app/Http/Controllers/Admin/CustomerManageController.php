@@ -8,6 +8,7 @@ use Illuminate\Support\Arr;
 use App\Models\CustomerProfit;
 use App\Models\Customer;
 use App\Models\IpBlock;
+use App\Models\CustomerTag;
 use Toastr;
 use Image;
 use File;
@@ -16,28 +17,32 @@ use Hash;
 class CustomerManageController extends Controller
 {
     public function index(Request $request){
+        $customers = Customer::with('tags')->withCount('orders')->withSum('orders', 'amount')->latest();
         if($request->keyword){
-            $show_data = Customer::orWhere('phone',$request->keyword)->orWhere('name',$request->keyword)->paginate(20);
-        }else{
-             $show_data = Customer::paginate(20);
+            $customers->where(function ($query) use ($request) {
+                $query->where('phone', $request->keyword)->orWhere('name', 'LIKE', '%' . $request->keyword . '%');
+            });
         }
+        $show_data = $customers->paginate(20)->withQueryString();
        
         return view('backEnd.customer.index',compact('show_data'));
     }
 
     public function edit($id){
-        $edit_data = Customer::find($id);
-        return view('backEnd.customer.edit',compact('edit_data'));
+        $edit_data = Customer::with('tags')->findOrFail($id);
+        $tags = CustomerTag::orderBy('name')->get();
+        return view('backEnd.customer.edit',compact('edit_data', 'tags'));
     }
     
     public function update(Request $request){
         $this->validate($request, [
             'name' => 'required',
             'phone' => 'required',
-            'email' => 'required',
+            'email' => 'nullable|email',
+            'tag_ids.*' => 'integer|exists:customer_tags,id',
         ]);
 
-        $input = $request->except('hidden_id');
+        $input = $request->except(['hidden_id', 'tag_ids']);
         $update_data = Customer::find($request->hidden_id);
         // new password
         
@@ -73,6 +78,7 @@ class CustomerManageController extends Controller
         }
         $input['status'] = $request->status?1:0;
         $update_data->update($input);
+        $update_data->tags()->sync($request->input('tag_ids', []));
 
         Toastr::success('Success','Data update successfully');
         return redirect()->route('customers.index');
@@ -93,7 +99,7 @@ class CustomerManageController extends Controller
         return redirect()->back();
     }
     public function profile(Request $request){
-        $profile = Customer::with('orders')->find($request->id);
+        $profile = Customer::with(['orders.status', 'tags'])->findOrFail($request->id);
         return view('backEnd.customer.profile',compact('profile'));
     }
     public function adminlog(Request $request){

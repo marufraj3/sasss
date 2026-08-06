@@ -43,6 +43,7 @@
                             <th>Name</th>
                             <th>Phone</th>
                             <th>Email</th>
+                            <th>CRM</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
@@ -56,6 +57,7 @@
                             <td>{{$value->name}}</td>
                             <td>{{$value->phone}}</td>
                             <td>{{$value->email}}</td>
+                            <td><small>{{ $value->orders_count }} orders · ৳{{ number_format($value->orders_sum_amount ?? 0) }}</small><br>@foreach($value->tags as $tag)<span class="badge" style="background:{{ $tag->color }}">{{ $tag->name }}</span> @endforeach</td>
                             <td>@if($value->status=='active')<span class="badge bg-soft-success text-success">Active</span> @else <span class="badge bg-soft-danger text-danger">{{$value->status}}</span> @endif</td>
                             <td>
                                 <div class="button-list">
