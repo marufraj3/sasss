@@ -459,6 +459,18 @@
     </div>
 </section>
 
+@if($recommendedProducts->isNotEmpty())
+<section class="related-product-section" style="background:#f5faf7; padding:26px 0; margin-top:24px;">
+    <div class="container">
+        <div class="related-title"><h3 style="font-weight:800;">একসাথে কিনলে ভালো লাগতে পারে</h3><p>এই পণ্যটির সাথে customer-রা এগুলোও পছন্দ করেন</p></div>
+        <div class="row g-3">
+            @foreach($recommendedProducts as $recommendedProduct)
+            <div class="col-6 col-md-3"><div class="card h-100 border-0 shadow-sm"><a href="{{ route('product', $recommendedProduct->slug) }}"><img loading="lazy" src="{{ asset(optional($recommendedProduct->image)->image ?: 'public/uploads/default/product.png') }}" alt="{{ $recommendedProduct->name }}" class="card-img-top" style="aspect-ratio:1;object-fit:cover"></a><div class="card-body p-3"><a href="{{ route('product', $recommendedProduct->slug) }}" class="text-decoration-none text-dark fw-bold">{{ Str::limit($recommendedProduct->name, 42) }}</a><p class="text-success fw-bold my-2">৳{{ number_format($recommendedProduct->new_price) }}</p>@if($recommendedProduct->prosizes->isNotEmpty() || $recommendedProduct->procolors->isNotEmpty())<a href="{{ route('product', $recommendedProduct->slug) }}" class="btn btn-sm btn-outline-success w-100">অপশন দেখুন</a>@else<form action="{{ route('cart.store') }}" method="POST">@csrf<input type="hidden" name="id" value="{{ $recommendedProduct->id }}"><input type="hidden" name="qty" value="1"><button name="add_cart" class="btn btn-sm btn-success w-100">কার্টে যোগ করুন</button></form>@endif</div></div></div>
+            @endforeach
+        </div>
+    </div>
+</section>
+@endif
 <section class="related-product-section">
     <div class="container">
         <div class="row">

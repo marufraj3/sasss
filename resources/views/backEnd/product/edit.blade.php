@@ -241,6 +241,17 @@
              <!--col end -->
             <div class="col-sm-12 mb-3">
               <div class="form-group">
+                <label for="product_recommendations" class="form-label">Frequently bought together / recommended products</label>
+                <select id="product_recommendations" class="form-control select2" name="product_recommendations[]" multiple="multiple" data-placeholder="Select products to cross-sell">
+                  @foreach($recommendableProducts as $recommendedProduct)
+                    <option value="{{ $recommendedProduct->id }}" @selected(in_array($recommendedProduct->id, $selectedRecommendations))>{{ $recommendedProduct->name }} — ৳{{ $recommendedProduct->new_price }}</option>
+                  @endforeach
+                </select>
+                <small class="text-muted">These products appear as a curated cross-sell section on this product page.</small>
+              </div>
+            </div>
+            <div class="col-sm-12 mb-3">
+              <div class="form-group">
                 <label for="description" class="form-label">Description</label>
                 <textarea name="description" rows="6" class="summernote form-control @error('description') is-invalid @enderror">{{$edit_data->description}}</textarea>
                 @error('description')

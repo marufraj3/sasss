@@ -123,7 +123,9 @@ class ProductController extends Controller
         $totalcolors = Color::where('status',1)->get();
         $selectcolors = Productcolor::where('product_id',$id)->get();
         $selectsizes = Productsize::where('product_id',$id)->get();
-        return view('backEnd.product.edit',compact('edit_data','categories', 'subcategory', 'childcategory', 'brands', 'selectcolors', 'selectsizes','totalsizes', 'totalcolors'));
+        $recommendableProducts = Product::where('status', 1)->where('id', '!=', $id)->orderBy('name')->get(['id', 'name', 'new_price']);
+        $selectedRecommendations = $edit_data->recommendedProducts()->pluck('products.id')->all();
+        return view('backEnd.product.edit',compact('edit_data','categories', 'subcategory', 'childcategory', 'brands', 'selectcolors', 'selectsizes','totalsizes', 'totalcolors', 'recommendableProducts', 'selectedRecommendations'));
     }
     public function price_edit()
     {
@@ -161,6 +163,7 @@ class ProductController extends Controller
             'stock' => 'required',
             'category_id' => 'required',
             'description' => 'required',
+            'product_recommendations.*' => 'nullable|integer|exists:products,id',
         ]);
           
         $update_data = Product::find($request->id);
@@ -173,6 +176,13 @@ class ProductController extends Controller
         $update_data->update($input);
         $update_data->sizes()->sync($request->proSize);
         $update_data->colors()->sync($request->proColor);
+        $recommendations = collect($request->input('product_recommendations', []))
+            ->filter(fn ($id) => (int) $id !== (int) $update_data->id)
+            ->unique()
+            ->values()
+            ->mapWithKeys(fn ($id, $position) => [(int) $id => ['sort_order' => $position]])
+            ->all();
+        $update_data->recommendedProducts()->sync($recommendations);
 
         // image with intervention 
         $images = $request->file('image');

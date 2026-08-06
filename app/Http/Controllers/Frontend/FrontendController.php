@@ -227,10 +227,14 @@ class FrontendController extends Controller
     public function details($slug)
     {
         $details = Product::where(['slug' => $slug, 'status' => 1])
-            ->with(['image', 'images', 'category', 'subcategory', 'childcategory', 'brand'])
+            ->with(['image', 'images', 'category', 'subcategory', 'childcategory', 'brand', 'recommendedProducts.image', 'recommendedProducts.prosizes', 'recommendedProducts.procolors'])
             ->withCount('reviews')
             ->firstOrFail();
         $this->rememberRecentlyViewedProduct($details->id);
+        $recommendedProducts = $details->recommendedProducts
+            ->filter(fn ($product) => (int) $product->status === 1 && (int) $product->stock > 0)
+            ->take(4)
+            ->values();
 
         $products = Product::where(['category_id' => $details->category_id, 'status' => 1])
             ->where('id', '!=', $details->id)
@@ -252,7 +256,7 @@ class FrontendController extends Controller
         $isWishlisted = Auth::guard('customer')->check()
             && Wishlist::where(['customer_id' => Auth::guard('customer')->id(), 'product_id' => $details->id])->exists();
 
-        return view('frontEnd.layouts.pages.details', compact('details', 'products', 'shippingcharge', 'productcolors', 'productsizes', 'reviews', 'isWishlisted'));
+        return view('frontEnd.layouts.pages.details', compact('details', 'products', 'recommendedProducts', 'shippingcharge', 'productcolors', 'productsizes', 'reviews', 'isWishlisted'));
     }
     public function quickview(Request $request)
     {
