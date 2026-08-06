@@ -16,6 +16,7 @@ use App\Models\Order;
 use App\Models\PaymentGateway;
 use Config;
 use Session;
+use Illuminate\Support\Facades\Cache;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -46,32 +47,32 @@ class AppServiceProvider extends ServiceProvider
             Config::set(['shurjopay.apiCredentials.cancel_url' => $shurjopay->return_url]);
             Config::set(['shurjopay.apiCredentials.base_url' => $shurjopay->base_url]);
         }
-        $generalsetting = GeneralSetting::where('status',1)->limit(1)->first();
-        view()->share('generalsetting',$generalsetting); 
+        // Shared storefront data previously caused multiple queries on every page load,
+        // plus a menu N+1 query. A short cache keeps the shop responsive while allowing
+        // content changes to appear quickly.
+        $storefront = Cache::remember('storefront.shared.v2', now()->addMinutes(5), function () {
+            $menus = Category::where('status', 1)
+                ->select('id', 'name', 'slug', 'status', 'image')
+                ->with(['subcategories.childcategories'])
+                ->get();
 
-        $sidecategories = Category::where('parent_id','=','0')->where('status',1)->select('id','name','slug','status','image')->get();
-        view()->share('sidecategories',$sidecategories); 
-        
-        $menucategories = Category::where('status',1)->select('id','name','slug','status','image')->get();
-        view()->share('menucategories',$menucategories); 
+            $activePages = CreatePage::where('status', 1)->get();
 
-        $contact = Contact::where('status',1)->first();
-        view()->share('contact',$contact); 
-
-        $socialicons = SocialMedia::where('status',1)->get();
-        view()->share('socialicons',$socialicons);
-
-        $pages = CreatePage::where('status',1)->limit(3)->get();
-        view()->share('pages',$pages);
-
-        $pagesright = CreatePage::where('status',1)->skip(3)->limit(10)->get();
-        view()->share('pagesright',$pagesright);
-
-        $cmnmenu = CreatePage::where('status',1)->get();
-        view()->share('cmnmenu',$cmnmenu);
-
-        $brands = Brand::where('status',1)->get();
-        view()->share('brands',$brands);
+            return [
+                'generalsetting' => GeneralSetting::where('status', 1)->first(),
+                'sidecategories' => Category::where('parent_id', 0)->where('status', 1)->select('id', 'name', 'slug', 'status', 'image')->get(),
+                'menucategories' => $menus,
+                'contact' => Contact::where('status', 1)->first(),
+                'socialicons' => SocialMedia::where('status', 1)->get(),
+                'pages' => $activePages->take(3),
+                'pagesright' => $activePages->slice(3, 10)->values(),
+                'cmnmenu' => $activePages,
+                'brands' => Brand::where('status', 1)->get(),
+                'pixels' => EcomPixel::where('status', 1)->get(),
+                'gtm_code' => GoogleTagManager::where('status', 1)->get(),
+            ];
+        });
+        view()->share($storefront);
         
         $neworder = Order::where('order_status','1')->count();
         view()->share('neworder',$neworder); 
@@ -82,10 +83,6 @@ class AppServiceProvider extends ServiceProvider
         $orderstatus = OrderStatus::get();
         view()->share('orderstatus',$orderstatus);
         
-        $pixels = EcomPixel::where('status',1)->get();
-        view()->share('pixels',$pixels);
-        
-        $gtm_code = GoogleTagManager::where('status',1)->get();
-        view()->share('gtm_code',$gtm_code);
+
     }
 }

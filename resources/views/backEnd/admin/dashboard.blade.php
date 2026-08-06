@@ -1,330 +1,48 @@
-
 @extends('backEnd.layouts.master')
-@section('title','Dashboard')
+@section('title', 'Business Dashboard')
 @section('css')
-<!-- Plugins css -->
-<link href="{{asset('public/backEnd/')}}/assets/libs/flatpickr/flatpickr.min.css" rel="stylesheet" type="text/css" />
-<link href="{{asset('public/backEnd/')}}/assets/libs/selectize/css/selectize.bootstrap3.css" rel="stylesheet" type="text/css" />
-
+<style>
+    .dash-hero{background:linear-gradient(115deg,#0b5d45,#087f5b);border-radius:16px;color:#fff;padding:24px 28px;margin-bottom:24px}.dash-hero h4{color:#fff;margin:0;font-weight:700}.dash-hero p{opacity:.82;margin:6px 0 0}.metric-card{border:0;border-radius:14px;box-shadow:0 3px 18px rgba(28,44,36,.06);height:100%}.metric-icon{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:20px}.metric-number{font-size:1.55rem;font-weight:750;color:#1f2d27}.metric-label{font-size:.82rem;color:#75817c}.status-item{border:1px solid #edf1ef;border-radius:10px;padding:11px 12px;display:flex;justify-content:space-between;align-items:center}.table td,.table th{vertical-align:middle}.table-title{font-weight:700;color:#23322b}.small-muted{color:#7d8984;font-size:.82rem}.quick-action{border:1px solid #dce8e2;border-radius:10px;padding:12px;text-decoration:none;color:#24533f;display:block;transition:.2s}.quick-action:hover{border-color:#087f5b;color:#087f5b;transform:translateY(-1px)}
+</style>
 @endsection
 @section('content')
-<!-- Start Content-->
 <div class="container-fluid">
-    <!-- start page title -->
-    <div class="row">
-        <div class="col-12">
-            <div class="page-title-box">
-                <div class="page-title-right">
-                
-                </div>
-                <h4 class="page-title">Dashboard</h4>
-            </div>
-        </div>
-    </div>     
-    <!-- end page title --> 
-
-    <div class="row">
-        <div class="col-md-6 col-xl-3">
-            <div class="widget-rounded-circle card">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="avatar-lg rounded-circle bg-soft-primary border-primary border">
-                                <i class="fe-shopping-cart font-22 avatar-title text-primary"></i>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="text-end">
-                                <h3 class="text-dark mt-1"><span data-plugin="counterup">{{$total_order}}</span></h3>
-                                <p class="text-muted mb-1 text-truncate">Total Oreder</p>
-                            </div>
-                        </div>
-                    </div> <!-- end row-->
-                </div>
-            </div> <!-- end widget-rounded-circle-->
-        </div> <!-- end col-->
-
-        <div class="col-md-6 col-xl-3">
-            <div class="widget-rounded-circle card">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="avatar-lg rounded-circle bg-soft-success border-success border">
-                                <i class="fe-shopping-bag font-22 avatar-title text-success"></i>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="text-end">
-                                <h3 class="text-dark mt-1"><span data-plugin="counterup">{{$today_order}}</span></h3>
-                                <p class="text-muted mb-1 text-truncate">Today's Order</p>
-                            </div>
-                        </div>
-                    </div> <!-- end row-->
-                </div>
-            </div> <!-- end widget-rounded-circle-->
-        </div> <!-- end col-->
-
-        <div class="col-md-6 col-xl-3">
-            <div class="widget-rounded-circle card">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="avatar-lg rounded-circle bg-soft-info border-info border">
-                                <i class="fe-database font-22 avatar-title text-info"></i>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="text-end">
-                                <h3 class="text-dark mt-1"><span data-plugin="counterup">{{$total_product}}</span></h3>
-                                <p class="text-muted mb-1 text-truncate">Products</p>
-                            </div>
-                        </div>
-                    </div> <!-- end row-->
-                </div>
-            </div> <!-- end widget-rounded-circle-->
-        </div> <!-- end col-->
-
-        <div class="col-md-6 col-xl-3">
-            <div class="widget-rounded-circle card">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="avatar-lg rounded-circle bg-soft-warning border-warning border">
-                                <i class="fe-user font-22 avatar-title text-warning"></i>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="text-end">
-                                <h3 class="text-dark mt-1"><span data-plugin="counterup">{{$total_customer}}</span></h3>
-                                <p class="text-muted mb-1 text-truncate">Customer</p>
-                            </div>
-                        </div>
-                    </div> <!-- end row-->
-                </div>
-            </div> <!-- end widget-rounded-circle-->
-        </div> <!-- end col-->
+    <div class="dash-hero d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div><h4>আজকের ব্যবসার অবস্থা</h4><p>Order, revenue এবং pending কাজগুলো এক জায়গা থেকে দেখুন।</p></div>
+        <div class="d-flex gap-2"><a href="{{ route('admin.order.create') }}" class="btn btn-light text-success fw-semibold"><i class="fe-plus-circle me-1"></i>নতুন POS order</a><a href="{{ route('admin.orders', ['slug' => 'pending']) }}" class="btn btn-outline-light">Pending orders</a></div>
     </div>
-    <!-- end row-->
 
-
-    <div class="row">
-        <div class="col-xl-6">
-            <div class="card">
-                <div class="card-body">
-                    <div class="dropdown float-end">
-                        <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="mdi mdi-dots-vertical"></i>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end">
-                            <!-- item-->
-                            <a href="javascript:void(0);" class="dropdown-item">Edit Report</a>
-                            <!-- item-->
-                            <a href="javascript:void(0);" class="dropdown-item">Export Report</a>
-                            <!-- item-->
-                            <a href="javascript:void(0);" class="dropdown-item">Action</a>
-                        </div>
-                    </div>
-
-                    <h4 class="header-title mb-3">Latest 5 Orders</h4>
-
-                    <div class="table-responsive">
-                        <table class="table table-borderless table-hover table-nowrap table-centered m-0">
-
-                            <thead class="table-light">
-                                <tr>
-                                    <th colspan="2">Id</th>
-                                    <th>Invoice</th>
-                                    <th>Amount</th>
-                                    <th>Customer</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($latest_order as $order)
-                                <tr>
-                                    <td>{{$loop->iteration}}</td>
-                                    <td style="width: 36px;">
-                                        <img src="{{asset($order->product?$order->product->image->image:'')}}" alt="contact-img" title="contact-img" class="rounded-circle avatar-sm" />
-                                    </td>
-
-                                    <td>
-                                        {{$order->invoice_id}}
-                                    </td>
-
-                                    <td>
-                                        {{$order->amount}}
-                                    </td>
-
-                                    <td>
-                                        {{$order->customer?$order->customer->name:''}}
-                                    </td>
-                                    <td>
-                                        {{$order->order_status}}
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div> <!-- end col -->
-
-        <div class="col-xl-6">
-            <div class="card">
-                <div class="card-body">
-                    <div class="dropdown float-end">
-                        <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="mdi mdi-dots-vertical"></i>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end">
-                            <!-- item-->
-                            <a href="javascript:void(0);" class="dropdown-item">Edit Report</a>
-                            <!-- item-->
-                            <a href="javascript:void(0);" class="dropdown-item">Export Report</a>
-                            <!-- item-->
-                            <a href="javascript:void(0);" class="dropdown-item">Action</a>
-                        </div>
-                    </div>
-
-                    <h4 class="header-title mb-3">Latest Customers</h4>
-
-                    <div class="table-responsive">
-                        <table class="table table-borderless table-nowrap table-hover table-centered m-0">
-
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Id</th>
-                                    <th>Name</th>
-                                    <th>Phone</th>
-                                    <th>Date</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($latest_customer as $customer)
-                                <tr>
-                                    <td>
-                                        <h5 class="m-0 fw-normal">{{$loop->iteration}}</h5>
-                                    </td>
-
-                                    <td>
-                                        {{$customer->name}}
-                                    </td>
-
-                                    <td>
-                                        {{$customer->phone}}
-                                    </td>
-
-                                    <td>
-                                        {{$customer->created_at->format('d-m-Y')}}
-                                    </td>
-
-                                    <td>
-                                        {{$customer->status}}
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div> <!-- end .table-responsive-->
-                </div>
-            </div> <!-- end card-->
-        </div> <!-- end col -->
+    <div class="row g-3 mb-4">
+        @php($metrics = [
+            ['label'=>'আজকের order','value'=>$today_order,'icon'=>'fe-shopping-bag','color'=>'primary','note'=>'আজ নতুন এসেছে'],
+            ['label'=>'Pending order','value'=>$pendingOrders,'icon'=>'fe-clock','color'=>'warning','note'=>'দ্রুত confirm করুন'],
+            ['label'=>'আজকের completed sale','value'=>'৳'.number_format($todayRevenue),'icon'=>'fe-trending-up','color'=>'success','note'=>'Completed orders'],
+            ['label'=>'মোট customer','value'=>number_format($total_customer),'icon'=>'fe-users','color'=>'info','note'=>'All registered customers'],
+        ])
+        @foreach($metrics as $metric)
+        <div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body d-flex align-items-center gap-3"><div class="metric-icon bg-soft-{{ $metric['color'] }} text-{{ $metric['color'] }}"><i class="{{ $metric['icon'] }}"></i></div><div><div class="metric-number">{{ $metric['value'] }}</div><div class="metric-label">{{ $metric['label'] }}</div><small class="small-muted">{{ $metric['note'] }}</small></div></div></div></div>
+        @endforeach
     </div>
-    <!-- end row -->
-    
-</div> <!-- container -->
+
+    <div class="row g-3 mb-4">
+        <div class="col-xl-8"><div class="card metric-card"><div class="card-body"><div class="d-flex justify-content-between align-items-start mb-3"><div><h5 class="table-title mb-1">গত ৩০ দিনের completed sales</h5><span class="small-muted">Revenue এবং completed order trend</span></div><div class="text-end"><div class="fw-bold fs-5">৳{{ number_format($monthRevenue) }}</div><small class="{{ $revenueChange !== null && $revenueChange < 0 ? 'text-danger' : 'text-success' }}">{{ $revenueChange === null ? 'আগের মাসের data নেই' : ($revenueChange >= 0 ? '+' : '').$revenueChange.'% গত মাসের তুলনায়' }}</small></div></div><div id="sales-chart" style="height:310px"></div></div></div></div>
+        <div class="col-xl-4"><div class="card metric-card h-100"><div class="card-body"><h5 class="table-title">Order pipeline</h5><p class="small-muted mb-3">বর্তমান order status অনুযায়ী কাজের তালিকা</p><div class="d-grid gap-2">@forelse($ordersByStatus as $status)<div class="status-item"><span>{{ $status->name }}</span><strong>{{ number_format($status->order_count) }}</strong></div>@empty<div class="text-muted">কোনো order status পাওয়া যায়নি।</div>@endforelse</div></div></div></div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-4"><div class="card metric-card h-100"><div class="card-body"><h5 class="table-title">Quick actions</h5><div class="row g-2 mt-1"><div class="col-6"><a class="quick-action" href="{{ route('products.create') }}"><i class="fe-package d-block fs-4 mb-1"></i>Product add</a></div><div class="col-6"><a class="quick-action" href="{{ route('campaign.create') }}"><i class="fe-layout d-block fs-4 mb-1"></i>Landing page</a></div><div class="col-6"><a class="quick-action" href="{{ route('admin.orders', ['slug' => 'pending']) }}"><i class="fe-list d-block fs-4 mb-1"></i>Orders</a></div><div class="col-6"><a class="quick-action" href="{{ route('shippingcharges.index') }}"><i class="fe-truck d-block fs-4 mb-1"></i>Delivery charge</a></div></div><hr><div class="d-flex justify-content-between"><span class="small-muted">Total completed revenue</span><strong>৳{{ number_format($totalRevenue) }}</strong></div><div class="d-flex justify-content-between mt-2"><span class="small-muted">Total orders</span><strong>{{ number_format($total_order) }}</strong></div><div class="d-flex justify-content-between mt-2"><span class="small-muted">Products</span><strong>{{ number_format($total_product) }}</strong></div></div></div></div>
+        <div class="col-lg-8"><div class="card metric-card h-100"><div class="card-body"><div class="d-flex justify-content-between align-items-center"><div><h5 class="table-title mb-1">Best-selling products</h5><span class="small-muted">Completed orders থেকে গণনা করা হয়েছে</span></div><a class="btn btn-sm btn-outline-primary" href="{{ route('admin.stock_report') }}">Stock report</a></div><div class="table-responsive mt-3"><table class="table table-hover mb-0"><thead><tr><th>Product</th><th class="text-center">Sold</th><th class="text-end">Sales</th></tr></thead><tbody>@forelse($topProducts as $product)<tr><td class="fw-semibold">{{ $product->product_name }}</td><td class="text-center">{{ number_format($product->units_sold) }}</td><td class="text-end">৳{{ number_format($product->sales_total) }}</td></tr>@empty<tr><td colspan="3" class="text-center text-muted py-4">Completed order data পাওয়া যায়নি।</td></tr>@endforelse</tbody></table></div></div></div></div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-xl-8"><div class="card metric-card"><div class="card-body"><div class="d-flex justify-content-between align-items-center mb-3"><h5 class="table-title mb-0">সাম্প্রতিক order</h5><a href="{{ route('admin.orders', ['slug' => 'pending']) }}" class="btn btn-sm btn-outline-primary">সব order</a></div><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Invoice</th><th>Customer</th><th>Amount</th><th>Status</th><th>সময়</th></tr></thead><tbody>@forelse($latest_order as $order)<tr><td class="fw-semibold">{{ $order->invoice_id }}</td><td>{{ optional($order->customer)->name ?: 'Guest customer' }}<br><small class="small-muted">{{ optional($order->customer)->phone }}</small></td><td>৳{{ number_format($order->amount) }}</td><td><span class="badge bg-soft-primary text-primary">{{ optional($order->status)->name ?: $order->order_status }}</span></td><td class="small-muted">{{ optional($order->created_at)->diffForHumans() }}</td></tr>@empty<tr><td colspan="5" class="text-center text-muted py-4">এখনও কোনো order নেই।</td></tr>@endforelse</tbody></table></div></div></div></div>
+        <div class="col-xl-4"><div class="card metric-card"><div class="card-body"><h5 class="table-title">নতুন customer</h5><p class="small-muted">সর্বশেষ register করেছেন</p><div class="list-group list-group-flush">@forelse($latest_customer as $customer)<div class="list-group-item px-0 d-flex justify-content-between align-items-center"><div><strong>{{ $customer->name }}</strong><br><small class="small-muted">{{ $customer->phone }}</small></div><small class="small-muted">{{ optional($customer->created_at)->format('d M') }}</small></div>@empty<div class="text-muted py-3">এখনও customer নেই।</div>@endforelse</div></div></div></div>
+    </div>
+</div>
 @endsection
 @section('script')
- <!-- Plugins js-->
-        <script src="{{asset('public/backEnd/')}}/assets/libs/flatpickr/flatpickr.min.js"></script>
-        <script src="{{asset('public/backEnd/')}}/assets/libs/apexcharts/apexcharts.min.js"></script>
-        <script src="{{asset('public/backEnd/')}}/assets/libs/selectize/js/standalone/selectize.min.js"></script>
-
-    <script>
-
-    var colors = ["#f1556c"],
-    dataColors = $("#total-revenue").data("colors");
-    dataColors && (colors = dataColors.split(","));
-    var options = {
-          
-          chart: {
-             height: 242,
-             type: "radialBar"
-          },
-          plotOptions: {
-             radialBar: {
-                hollow: {
-                   size: "65%"
-                }
-             }
-          },
-          colors: colors,
-          labels: ["Delivery"]
-       },
-        chart = new ApexCharts(document.querySelector("#total-revenue"), options);
-        chart.render();
-        colors = ["#1abc9c", "#4a81d4"];
-        (dataColors = $("#sales-analytics").data("colors")) && (colors = dataColors.split(","));
-        options = {
-           series: [{
-              name: "Revenue",
-              type: "column",
-              data: [@foreach($monthly_sale as $sale) {{$sale->amount}}, @endforeach]
-           }, {
-              name: "Sales",
-              type: "line",
-              data: [@foreach($monthly_sale as $sale) {{$sale->amount}}, @endforeach]
-           }],
-           chart: {
-              height: 378,
-              type: "line",
-           },
-           stroke: {
-              width: [2, 3]
-           },
-           plotOptions: {
-              bar: {
-                 columnWidth: "50%"
-              }
-           },
-           colors: colors,
-           dataLabels: {
-              enabled: !0,
-              enabledOnSeries: [1]
-           },
-           labels: [@foreach($monthly_sale as $sale) {{date('d', strtotime($sale->date))}} + '-' + {{date('m', strtotime($sale->date))}}+ '-' + {{date('Y', strtotime($sale->date))}}, @endforeach],
-           legend: {
-              offsetY: 7
-           },
-           grid: {
-              padding: {
-                 bottom: 20
-              }
-           },
-           fill: {
-              type: "gradient",
-              gradient: {
-                 shade: "light",
-                 type: "horizontal",
-                 shadeIntensity: .25,
-                 gradientToColors: void 0,
-                 inverseColors: !0,
-                 opacityFrom: .75,
-                 opacityTo: .75,
-                 stops: [0, 0, 0]
-              }
-           },
-           yaxis: [{
-              title: {
-                 text: "Net Revenue"
-              }
-           }]
-        };
-        (chart = new ApexCharts(document.querySelector("#sales-analytics"), options)).render(), $("#dash-daterange").flatpickr({
-           altInput: !0,
-           mode: "range",
-        });
-    </script>
+<script src="{{ asset('public/backEnd/assets/libs/apexcharts/apexcharts.min.js') }}"></script>
+<script>
+new ApexCharts(document.querySelector('#sales-chart'), {chart:{type:'area',height:310,toolbar:{show:false}},series:[{name:'Revenue',data:@json($chartRevenue)},{name:'Orders',data:@json($chartOrders)}],xaxis:{categories:@json($chartLabels)},colors:['#087f5b','#e97520'],stroke:{curve:'smooth',width:[3,2]},fill:{type:'gradient',gradient:{opacityFrom:.36,opacityTo:.04}},dataLabels:{enabled:false},yaxis:[{title:{text:'Revenue'}},{opposite:true,title:{text:'Orders'}}],tooltip:{y:{formatter:function(value){return '৳'+Number(value).toLocaleString();}}}}).render();
+</script>
 @endsection

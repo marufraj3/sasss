@@ -25,54 +25,46 @@ use App\Models\Review;
 use Session;
 use Cart;
 use Auth;
+use Illuminate\Support\Facades\Cache;
 
 class FrontendController extends Controller
 {
     public function index()
     {
-        // return "Welcome to Kenakatar.com";
-        $frontcategory = Category::where(['status' => 1])
-            ->select('id', 'name', 'image', 'slug', 'status')
-            ->get();
+        // The home page is the most visited route. Cache the assembled sections briefly
+        // and load only the 12 products that are actually rendered per category.
+        $homePage = Cache::remember('storefront.home.v2', now()->addMinutes(5), function () {
+            $homeproducts = Category::where(['front_view' => 1, 'status' => 1])
+                ->select('id', 'name', 'slug')
+                ->orderBy('id')
+                ->get();
 
-        $sliders = Banner::where(['status' => 1, 'category_id' => 1])
-            ->select('id', 'image', 'link')
-            ->get();
+            $categoryIds = $homeproducts->pluck('id');
+            $productsByCategory = Product::where('status', 1)
+                ->where('stock', '>', 0)
+                ->whereIn('category_id', $categoryIds)
+                ->select('id', 'name', 'slug', 'new_price', 'old_price', 'category_id')
+                ->with(['image', 'prosizes', 'procolors'])
+                ->latest('id')
+                ->get()
+                ->groupBy('category_id');
 
-        $sliderbottomads = Banner::where(['status' => 1, 'category_id' => 5])
-            ->select('id', 'image', 'link')
-            ->limit(3)
-            ->get();
-
-        $footertopads = Banner::where(['status' => 1, 'category_id' => 6])
-            ->select('id', 'image', 'link')
-            ->limit(2)
-            ->get();
-
-        $hotdeal_top = Product::where(['status' => 1, 'topsale' => 1])
-            ->orderBy('id', 'DESC')
-            ->select('id', 'name', 'slug', 'new_price', 'old_price')
-            ->with('prosizes', 'procolors')
-            ->limit(12)
-            ->get();
-        // return $hotdeal_top;
-
-        $hotdeal_bottom = Product::where(['status' => 1, 'topsale' => 1])
-            ->select('id', 'name', 'slug', 'new_price', 'old_price')
-            ->skip(12)
-            ->limit(12)
-            ->get();
-
-        $homeproducts = Category::where(['front_view' => 1, 'status' => 1])
-            ->orderBy('id', 'ASC')
-            ->with(['products', 'products.image', 'products.prosize', 'products.procolor'])
-            ->get()
-            ->map(function ($query) {
-                $query->setRelation('products', $query->products->take(12));
-                return $query;
+            $homeproducts->each(function ($category) use ($productsByCategory) {
+                $category->setRelation('products', ($productsByCategory->get($category->id) ?? collect())->take(12)->values());
             });
-        // return $homeproducts;
-        return view('frontEnd.layouts.pages.index', compact('sliders', 'frontcategory', 'hotdeal_top', 'hotdeal_bottom', 'homeproducts', 'sliderbottomads', 'footertopads'));
+
+            return [
+                'frontcategory' => Category::where('status', 1)->select('id', 'name', 'image', 'slug')->get(),
+                'sliders' => Banner::where(['status' => 1, 'category_id' => 1])->select('id', 'image', 'link')->get(),
+                'sliderbottomads' => Banner::where(['status' => 1, 'category_id' => 5])->select('id', 'image', 'link')->limit(3)->get(),
+                'footertopads' => Banner::where(['status' => 1, 'category_id' => 6])->select('id', 'image', 'link')->limit(2)->get(),
+                'hotdeal_top' => Product::where(['status' => 1, 'topsale' => 1])->where('stock', '>', 0)->latest('id')->select('id', 'name', 'slug', 'new_price', 'old_price')->with(['image', 'prosizes', 'procolors'])->limit(12)->get(),
+                'hotdeal_bottom' => Product::where(['status' => 1, 'topsale' => 1])->latest('id')->select('id', 'name', 'slug', 'new_price', 'old_price')->skip(12)->limit(12)->get(),
+                'homeproducts' => $homeproducts,
+            ];
+        });
+
+        return view('frontEnd.layouts.pages.index', $homePage);
     }
 
     public function hotdeals()
