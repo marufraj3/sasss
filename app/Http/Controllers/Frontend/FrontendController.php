@@ -271,21 +271,24 @@ class FrontendController extends Controller
     }
     public function livesearch(Request $request)
     {
-        $products = Product::select('id', 'name', 'slug', 'new_price', 'old_price')
-            ->where('status', 1)
-            ->with('image');
-        if ($request->keyword) {
-            $products = $products->where('name', 'LIKE', '%' . $request->keyword . "%");
+        $keyword = trim((string) $request->get('keyword'));
+        if (mb_strlen($keyword) < 2) {
+            return response()->view('frontEnd.layouts.ajax.search', ['products' => collect(), 'searched' => false]);
         }
-        if ($request->category) {
-            $products = $products->where('category_id', $request->category);
-        }
-        $products = $products->get();
 
-        if (empty($request->category) && empty($request->keyword)) {
-            $products = [];
-        }
-        return view('frontEnd.layouts.ajax.search', compact('products'));
+        $products = Product::select('id', 'name', 'slug', 'new_price', 'old_price', 'product_code')
+            ->where('status', 1)
+            ->where('stock', '>', 0)
+            ->when($request->category, fn ($query, $category) => $query->where('category_id', $category))
+            ->where(function ($query) use ($keyword) {
+                $query->where('name', 'LIKE', '%' . $keyword . '%')
+                    ->orWhere('product_code', 'LIKE', '%' . $keyword . '%');
+            })
+            ->with('image')
+            ->limit(8)
+            ->get();
+
+        return view('frontEnd.layouts.ajax.search', ['products' => $products, 'searched' => true]);
     }
     public function search(Request $request)
     {

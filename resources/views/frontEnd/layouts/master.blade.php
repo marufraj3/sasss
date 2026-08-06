@@ -580,37 +580,28 @@ header{
         </script>
         <!-- cart js end -->
         <script>
-            $(".search_click").on("keyup change", function () {
-                var keyword = $(".search_keyword").val();
-                $.ajax({
-                    type: "GET",
-                    data: { keyword: keyword },
-                    url: "{{route('livesearch')}}",
-                    success: function (products) {
-                        if (products) {
-                            $(".search_result").html(products);
-                        } else {
-                            $(".search_result").empty();
-                        }
-                    },
-                });
-            });
-            $(".msearch_click").on("keyup change", function () {
-                var keyword = $(".msearch_keyword").val();
-                $.ajax({
-                    type: "GET",
-                    data: { keyword: keyword },
-                    url: "{{route('livesearch')}}",
-                    success: function (products) {
-                        if (products) {
-                            $("#loading").hide();
-                            $(".search_result").html(products);
-                        } else {
-                            $(".search_result").empty();
-                        }
-                    },
-                });
-            });
+            (function () {
+                let searchTimer;
+                let activeRequest;
+                function liveSearch(keyword) {
+                    clearTimeout(searchTimer);
+                    if (keyword.trim().length < 2) {
+                        $(".search_result").empty();
+                        return;
+                    }
+                    searchTimer = setTimeout(function () {
+                        if (activeRequest) activeRequest.abort();
+                        activeRequest = $.ajax({
+                            type: "GET",
+                            data: { keyword: keyword.trim() },
+                            url: "{{ route('livesearch') }}",
+                            success: function (products) { $(".search_result").html(products); },
+                        });
+                    }, 280);
+                }
+                $(".search_click").on("input", function () { liveSearch($(this).val()); });
+                $(".msearch_click").on("input", function () { liveSearch($(this).val()); });
+            })();
         </script>
         <!-- search js start -->
         <script></script>
