@@ -37,6 +37,7 @@ use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\AbandonedCartController;
 use App\Http\Controllers\Admin\ReturnRequestController;
 use App\Http\Controllers\Admin\CustomerTagController;
+use App\Http\Controllers\Admin\ProductAnalyticsController;
 
 Auth::routes();
 
@@ -340,6 +341,9 @@ Route::group(['namespace'=>'Admin','middleware' => ['auth','lock','check_refer']
     Route::get('customer-tags', [CustomerTagController::class, 'index'])->name('customer-tags.index');
     Route::post('customer-tags', [CustomerTagController::class, 'store'])->name('customer-tags.store');
     Route::delete('customer-tags/{customerTag}', [CustomerTagController::class, 'destroy'])->name('customer-tags.destroy');
+
+    // sales funnel reporting
+    Route::get('analytics/products', [ProductAnalyticsController::class, 'index'])->name('analytics.products');
    
     // settings route 
     Route::get('settings/manage', [GeneralSettingController::class,'index'])->name('settings.index');

@@ -8,6 +8,7 @@ use App\Models\Product;
 use Toastr;
 use Cart;
 use DB;
+use App\Services\ProductEventTracker;
 class ShoppingController extends Controller
 {
 
@@ -81,6 +82,7 @@ class ShoppingController extends Controller
                 'pro_unit' => $data['pro_unit'] ?? null,
             ],
         ]);
+        app(ProductEventTracker::class)->record($product->id, 'add_to_cart');
     }
     public function cart_remove(Request $request)
     {

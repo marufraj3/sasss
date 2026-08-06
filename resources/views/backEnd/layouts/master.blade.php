@@ -387,6 +387,9 @@
                     <li>
                       <a href="{{route('customer-tags.index')}}"><i data-feather="tag"></i> Customer CRM Tags</a>
                     </li>
+                    <li>
+                      <a href="{{route('analytics.products')}}"><i data-feather="bar-chart-2"></i> Product Analytics</a>
+                    </li>
                   </ul>
                 </div>
               </li>

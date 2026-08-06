@@ -27,6 +27,7 @@ use Cart;
 use Auth;
 use Illuminate\Support\Facades\Cache;
 use App\Models\Wishlist;
+use App\Services\ProductEventTracker;
 
 class FrontendController extends Controller
 {
@@ -231,6 +232,7 @@ class FrontendController extends Controller
             ->withCount('reviews')
             ->firstOrFail();
         $this->rememberRecentlyViewedProduct($details->id);
+        app(ProductEventTracker::class)->recordProductView($details->id);
         $recommendedProducts = $details->recommendedProducts
             ->filter(fn ($product) => (int) $product->status === 1 && (int) $product->stock > 0)
             ->take(4)
