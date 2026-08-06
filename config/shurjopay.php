@@ -2,7 +2,7 @@
 
 return [
     'apiCredentials' => [
-        'username' => 'env("MERCHANT_USERNAME")',
+        'username' => env('MERCHANT_USERNAME'),
         'password' => env("MERCHANT_PASSWORD"),
         'prefix' => env("MERCHANT_PREFIX"),
         'return_url' => env("MERCHANT_RETURN_URL"),

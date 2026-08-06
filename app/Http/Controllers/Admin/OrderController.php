@@ -382,114 +382,119 @@ class OrderController extends Controller
         return view('backEnd.order.create',compact('products','cartinfo','shippingcharge'));
     }
     
-    public function order_store(Request $request){
-        $this->validate($request,[
-            'name' => 'required|string|max:155',
-            'phone' => 'required|string|max:20',
-            'address' => 'required|string|max:255',
-            'area' => 'required|integer|exists:shipping_charges,id',
-            'paid_amount' => 'nullable|numeric|min:0',
-            'payment_method' => 'required|in:Cash,Card,bKash,Nagad,Cash On Delivery',
-            'order_page' => 'nullable|string|max:120',
-            'utm_source' => 'nullable|string|max:120',
-            'office_note' => 'nullable|string|max:2000',
-            'note' => 'nullable|string|max:2000',
+    public function order_store(Request $request)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:155'],
+            'phone' => ['required', 'string', 'max:20'],
+            'address' => ['required', 'string', 'max:255'],
+            'area' => ['required', 'integer', 'exists:shipping_charges,id'],
+            'paid_amount' => ['nullable', 'numeric', 'min:0'],
+            'payment_method' => ['required', 'in:Cash,Card,bKash,Nagad,Cash On Delivery'],
+            'order_page' => ['nullable', 'string', 'max:120'],
+            'utm_source' => ['nullable', 'string', 'max:120'],
+            'office_note' => ['nullable', 'string', 'max:2000'],
+            'note' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        if(Cart::instance('pos_shopping')->count() <= 0) {
-            Toastr::error('Your shopping empty', 'Failed!');
-            return redirect()->back();
+        $cartItems = Cart::instance('pos_shopping')->content();
+        if ($cartItems->isEmpty()) {
+            Toastr::error('Your POS cart is empty.', 'Failed');
+            return back();
         }
 
-        // Re-check inventory immediately before committing a POS order.
-        foreach (Cart::instance('pos_shopping')->content() as $cart) {
-            $product = Product::where(['id' => $cart->id, 'status' => 1])->first();
-            if (! $product || $product->stock < $cart->qty) {
-                Toastr::error("{$cart->name} does not have enough stock.", 'Stock unavailable');
-                return back();
-            }
-        }
-
-        $subtotal = Cart::instance('pos_shopping')->subtotal();
-        $subtotal = str_replace(',','',$subtotal);
-        $subtotal = str_replace('.00', '',$subtotal);
+        $subtotal = (int) round($cartItems->sum(fn ($item) => $item->price * $item->qty));
         $discount = (int) Session::get('pos_discount', 0) + (int) Session::get('product_discount', 0);
-        $shippingfee = ShippingCharge::where(['id' => $request->area, 'status' => 1])->firstOrFail();
-        $finalAmount = max(0, ((int) $subtotal + (int) $shippingfee->amount) - $discount);
-        $paidAmount = min($finalAmount, (int) $request->input('paid_amount', 0));
+        $shippingFee = ShippingCharge::where(['id' => $data['area'], 'status' => 1])->firstOrFail();
+        $finalAmount = max(0, $subtotal + (int) $shippingFee->amount - $discount);
+        $paidAmount = min($finalAmount, (int) ($data['paid_amount'] ?? 0));
         $dueAmount = $finalAmount - $paidAmount;
-        
-        $exits_customer = Customer::where('phone',$request->phone)->select('phone','id')->first();
-        if($exits_customer){
-            $customer_id = $exits_customer->id;
-        }else{
-            $password = rand(111111,999999);
-            $store              = new Customer();
-            $store->name        = $request->name;
-            $store->slug        = $request->name;
-            $store->phone       = $request->phone;
-            $store->password    = bcrypt($password);
-            $store->verify      = 1;
-            $store->status      = 'active';
-            $store->save();
-            $customer_id = $store->id;
+
+        try {
+            $order = DB::transaction(function () use ($data, $cartItems, $shippingFee, $discount, $finalAmount, $paidAmount, $dueAmount) {
+                foreach ($cartItems as $item) {
+                    $product = Product::where(['id' => $item->id, 'status' => 1])->lockForUpdate()->first();
+                    if (! $product || $product->stock < $item->qty) {
+                        throw new \RuntimeException("{$item->name} does not have enough stock.");
+                    }
+                    $product->decrement('stock', $item->qty);
+                }
+
+                $customer = Customer::where('phone', $data['phone'])->first();
+                if (! $customer) {
+                    $customer = new Customer();
+                    $customer->name = $data['name'];
+                    $customer->slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $data['name'])) . '-' . random_int(1000, 9999);
+                    $customer->phone = $data['phone'];
+                    $customer->address = $data['address'];
+                    $customer->password = bcrypt(bin2hex(random_bytes(16)));
+                    $customer->verify = 1;
+                    $customer->status = 'active';
+                    $customer->save();
+                }
+
+                do {
+                    $invoice = 'POS-' . now()->format('ymdHis') . '-' . random_int(100, 999);
+                } while (Order::where('invoice_id', $invoice)->exists());
+
+                $order = new Order();
+                $order->invoice_id = $invoice;
+                $order->amount = $finalAmount;
+                $order->discount = $discount;
+                $order->shipping_charge = $shippingFee->amount;
+                $order->customer_id = $customer->id;
+                $order->order_status = OrderStatus::where('slug', 'pending')->value('id') ?? 1;
+                $order->note = $data['note'] ?? null;
+                $order->office_note = $data['office_note'] ?? null;
+                $order->order_page = $data['order_page'] ?? null;
+                $order->utm_source = $data['utm_source'] ?? null;
+                $order->save();
+
+                $shipping = new Shipping();
+                $shipping->order_id = $order->id;
+                $shipping->customer_id = $customer->id;
+                $shipping->name = $data['name'];
+                $shipping->phone = $data['phone'];
+                $shipping->address = $data['address'];
+                $shipping->area = $shippingFee->name;
+                $shipping->save();
+
+                $payment = new Payment();
+                $payment->order_id = $order->id;
+                $payment->customer_id = $customer->id;
+                $payment->payment_method = $data['payment_method'];
+                $payment->amount = $finalAmount;
+                $payment->paid_amount = $paidAmount;
+                $payment->due_amount = $dueAmount;
+                $payment->payment_status = $dueAmount === 0 ? 'paid' : ($paidAmount > 0 ? 'partial' : 'pending');
+                $payment->save();
+
+                foreach ($cartItems as $item) {
+                    $detail = new OrderDetails();
+                    $detail->order_id = $order->id;
+                    $detail->product_id = $item->id;
+                    $detail->product_name = $item->name;
+                    $detail->purchase_price = $item->options->purchase_price;
+                    $detail->product_discount = $item->options->product_discount ?? 0;
+                    $detail->sale_price = $item->price;
+                    $detail->qty = $item->qty;
+                    $detail->save();
+                }
+
+                return $order;
+            });
+        } catch (\Throwable $exception) {
+            report($exception);
+            Toastr::error($exception->getMessage() ?: 'POS order could not be saved.', 'Failed');
+            return back();
         }
- 
-         // order data save
-        $order                   = new Order();
-        $order->invoice_id       = rand(11111,99999);
-        $order->amount           = $finalAmount;
-        $order->discount         = $discount;
-        $order->shipping_charge  = $shippingfee->amount;
-        $order->customer_id      = $customer_id;
-        $order->order_status     = OrderStatus::where('slug', 'pending')->value('id') ?? 1;
-        $order->note             = $request->note;
-        $order->office_note      = $request->office_note;
-        $order->order_page       = $request->order_page;
-        $order->utm_source       = $request->utm_source;
-        $order->save();
 
-        // shipping data save
-        $shipping              =   new Shipping();
-        $shipping->order_id    =   $order->id;
-        $shipping->customer_id =   $customer_id;
-        $shipping->name        =   $request->name;
-        $shipping->phone       =   $request->phone;
-        $shipping->address     =   $request->address;
-        $shipping->area        =   $shippingfee->name;
-        $shipping->save();
-
-        // payment data save
-        $payment                 = new Payment();
-        $payment->order_id       = $order->id;
-        $payment->customer_id    = $customer_id;
-        $payment->payment_method = $request->payment_method;
-        $payment->amount         = $order->amount;
-        $payment->paid_amount    = $paidAmount;
-        $payment->due_amount     = $dueAmount;
-        $payment->payment_status = $dueAmount === 0 ? 'paid' : ($paidAmount > 0 ? 'partial' : 'pending');
-        $payment->save();
-
-       // order details data save
-        foreach(Cart::instance('pos_shopping')->content() as $cart){
-            $order_details                   =   new OrderDetails();
-            $order_details->order_id         =   $order->id;
-            $order_details->product_id       =   $cart->id;
-            $order_details->product_name     =   $cart->name;
-            $order_details->purchase_price   =   $cart->options->purchase_price;
-            $order_details->product_discount =   $cart->options->product_discount;
-            $order_details->sale_price       =   $cart->price;
-            $order_details->qty              =   $cart->qty;
-            $order_details->save();
-            Product::where('id', $cart->id)->decrement('stock', $cart->qty);
-        }
         Cart::instance('pos_shopping')->destroy();
-        Session::forget('pos_shipping');
-        Session::forget('pos_discount');
-        Session::forget('product_discount');
-        Toastr::success('Thanks, Your order place successfully', 'Success!');
-        return redirect('admin/order/pending');
+        Session::forget(['pos_shipping', 'pos_discount', 'product_discount']);
+        Toastr::success("POS order {$order->invoice_id} was placed successfully.", 'Success');
+        return redirect()->route('admin.orders', ['slug' => 'pending']);
     }
+
     public function pos_customer(Request $request){
         $data = $request->validate(['phone' => ['required', 'string', 'max:20']]);
         $customer = Customer::where('phone', $data['phone'])->latest()->first();

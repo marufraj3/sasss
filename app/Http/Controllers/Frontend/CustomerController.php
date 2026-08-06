@@ -478,6 +478,7 @@ class CustomerController extends Controller
         }
 
         Cart::instance('shopping')->destroy();
+        Session::put('order_success_ids', array_values(array_unique(array_merge(Session::get('order_success_ids', []), [$order->id]))));
         $this->markAbandonedCartRecovered($data['phone']);
         Session::forget(['shipping', 'discount']);
         $this->sendOrderConfirmationSms($data['name'], $data['phone']);
@@ -610,6 +611,9 @@ class CustomerController extends Controller
 
     public function order_success($id) {
         $order = Order::with(['orderdetails', 'shipping', 'payment'])->findOrFail($id);
+        $isOwner = Auth::guard('customer')->check() && (int) Auth::guard('customer')->id() === (int) $order->customer_id;
+        $isCurrentCheckout = in_array((int) $order->id, array_map('intval', Session::get('order_success_ids', [])), true);
+        abort_unless($isOwner || $isCurrentCheckout, 403);
         return view('frontEnd.layouts.customer.order_success',compact('order'));
     }
     public function invoice(Request $request)

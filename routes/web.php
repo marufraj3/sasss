@@ -128,8 +128,8 @@ Route::group(['prefix'=>'customer','namespace'=>'Frontend','middleware' => ['cus
 
 Route::group(['namespace'=>'Frontend', 'middleware' => ['ipcheck','check_refer']], function() {
     
-    Route::get('bkash/checkout-url/pay',[BkashController::class,'pay'])->name('url-pay');
-Route::any('bkash/checkout-url/create',[BkashController::class,'create'])->name('url-create');
+    Route::get('bkash/checkout-url/pay',[BkashController::class,'create'])->name('url-pay');
+Route::get('bkash/checkout-url/create',[BkashController::class,'create'])->name('url-create');
 Route::get('bkash/checkout-url/callback',[BkashController::class,'callback'])->name('url-callback');
     Route::get('/payment-success', [ShurjopayControllers::class, 'payment_success'])->name('payment_success');
     Route::get('/payment-cancel', [ShurjopayControllers::class, 'payment_cancel'])->name('payment_cancel');
