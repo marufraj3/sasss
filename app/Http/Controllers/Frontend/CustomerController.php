@@ -23,6 +23,7 @@ use App\Models\OrderStatus;
 use App\Models\Coupon;
 use App\Models\Wishlist;
 use App\Models\AbandonedCart;
+use App\Models\ReturnRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Session;
@@ -575,6 +576,34 @@ class CustomerController extends Controller
         $orders = Order::where('customer_id',Auth::guard('customer')->user()->id)->with('status')->latest()->get();
         return view('frontEnd.layouts.customer.orders',compact('orders'));
     }
+    public function returns()
+    {
+        $customerId = Auth::guard('customer')->id();
+        $orders = Order::where('customer_id', $customerId)->latest()->get(['id', 'invoice_id', 'amount', 'created_at']);
+        $returnRequests = ReturnRequest::where('customer_id', $customerId)->with('order')->latest()->get();
+
+        return view('frontEnd.layouts.customer.returns', compact('orders', 'returnRequests'));
+    }
+
+    public function return_store(Request $request)
+    {
+        $customerId = Auth::guard('customer')->id();
+        $data = $request->validate([
+            'order_id' => ['required', Rule::exists('orders', 'id')->where('customer_id', $customerId)],
+            'reason' => ['required', 'string', 'min:10', 'max:2000'],
+        ]);
+
+        $alreadyRequested = ReturnRequest::where(['order_id' => $data['order_id'], 'customer_id' => $customerId])
+            ->whereIn('status', ['pending', 'approved'])
+            ->exists();
+        if ($alreadyRequested) {
+            return back()->withErrors(['order_id' => 'এই order-এর জন্য ইতোমধ্যে একটি return request রয়েছে।']);
+        }
+
+        ReturnRequest::create(['order_id' => $data['order_id'], 'customer_id' => $customerId, 'reason' => $data['reason']]);
+        return back()->with('success', 'আপনার return request জমা হয়েছে। আমরা শিগগিরই যোগাযোগ করব।');
+    }
+
     public function order_success($id) {
         $order = Order::where('id',$id)->firstOrFail();
         return view('frontEnd.layouts.customer.order_success',compact('order'));

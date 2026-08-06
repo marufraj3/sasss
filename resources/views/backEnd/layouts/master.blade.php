@@ -356,6 +356,9 @@
                     <li>
                       <a href="{{route('abandoned-carts.index')}}"><i data-feather="shopping-cart"></i> Abandoned Carts</a>
                     </li>
+                    <li>
+                      <a href="{{route('return-requests.index')}}"><i data-feather="corner-up-left"></i> Return Requests</a>
+                    </li>
                   </ul>
                 </div>
               </li>
