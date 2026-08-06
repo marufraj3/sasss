@@ -494,8 +494,8 @@ header{
                 var id = $(this).data("id");
                 if (id) {
                     $.ajax({
-                        type: "GET",
-                        data: { id: id },
+                        type: "POST",
+                        data: { id: id, _token: $('meta[name="csrf-token"]').attr('content') },
                         url: "{{route('cart.remove')}}",
                         success: function (data) {
                             if (data) {
@@ -511,8 +511,8 @@ header{
                 var id = $(this).data("id");
                 if (id) {
                     $.ajax({
-                        type: "GET",
-                        data: { id: id },
+                        type: "POST",
+                        data: { id: id, _token: $('meta[name="csrf-token"]').attr('content') },
                         url: "{{route('cart.increment')}}",
                         success: function (data) {
                             if (data) {
@@ -528,8 +528,8 @@ header{
                 var id = $(this).data("id");
                 if (id) {
                     $.ajax({
-                        type: "GET",
-                        data: { id: id },
+                        type: "POST",
+                        data: { id: id, _token: $('meta[name="csrf-token"]').attr('content') },
                         url: "{{route('cart.decrement')}}",
                         success: function (data) {
                             if (data) {

@@ -72,12 +72,12 @@ Route::group(['namespace'=>'Frontend', 'middleware' => ['ipcheck','check_refer']
     Route::get('/add-to-cart/{id}/{qty}', [ShoppingController::class, 'addTocartGet']);
 
     Route::get('shop/cart', [ShoppingController::class, 'cart_show'])->name('cart.show');
-    Route::get('cart/remove', [ShoppingController::class, 'cart_remove'])->name('cart.remove');
+    Route::post('cart/remove', [ShoppingController::class, 'cart_remove'])->name('cart.remove');
     Route::get('cart/count', [ShoppingController::class, 'cart_count'])->name('cart.count');
     Route::get('mobilecart/count', [ShoppingController::class, 'mobilecart_qty'])->name('mobile.cart.count');
-    Route::get('cart/decrement', [ShoppingController::class, 'cart_decrement'])->name('cart.decrement');
+    Route::post('cart/decrement', [ShoppingController::class, 'cart_decrement'])->name('cart.decrement');
 
-    Route::get('cart/increment', [ShoppingController::class, 'cart_increment'])->name('cart.increment');
+    Route::post('cart/increment', [ShoppingController::class, 'cart_increment'])->name('cart.increment');
 
 });
 

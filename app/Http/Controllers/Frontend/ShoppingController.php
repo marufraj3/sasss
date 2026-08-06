@@ -86,23 +86,28 @@ class ShoppingController extends Controller
     }
     public function cart_remove(Request $request)
     {
-        $remove = Cart::instance('shopping')->update($request->id, 0);
+        $data = $request->validate(['id' => ['required', 'string']]);
+        Cart::instance('shopping')->update($data['id'], 0);
         $data = Cart::instance('shopping')->content();
         return view('frontEnd.layouts.ajax.cart', compact('data'));
     }
     public function cart_increment(Request $request)
     {
-        $item = Cart::instance('shopping')->get($request->id);
-        $qty = $item->qty + 1;
-        $increment = Cart::instance('shopping')->update($request->id, $qty);
+        $data = $request->validate(['id' => ['required', 'string']]);
+        $item = Cart::instance('shopping')->get($data['id']);
+        abort_unless($item, 404);
+        $product = Product::where(['id' => $item->id, 'status' => 1])->firstOrFail();
+        abort_if($item->qty >= $product->stock, 422, 'Requested quantity is unavailable.');
+        Cart::instance('shopping')->update($data['id'], $item->qty + 1);
         $data = Cart::instance('shopping')->content();
         return view('frontEnd.layouts.ajax.cart', compact('data'));
     }
     public function cart_decrement(Request $request)
     {
-        $item = Cart::instance('shopping')->get($request->id);
-        $qty = $item->qty - 1;
-        $decrement = Cart::instance('shopping')->update($request->id, $qty);
+        $data = $request->validate(['id' => ['required', 'string']]);
+        $item = Cart::instance('shopping')->get($data['id']);
+        abort_unless($item, 404);
+        Cart::instance('shopping')->update($data['id'], max(0, $item->qty - 1));
         $data = Cart::instance('shopping')->content();
         return view('frontEnd.layouts.ajax.cart', compact('data'));
     }

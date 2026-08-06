@@ -35,8 +35,8 @@
         $("#loading").show();
         if(id){
           $.ajax({
-             type:"GET",
-             data:{'id':id},
+             type:"POST",
+             data:{'id':id, _token: $('meta[name="csrf-token"]').attr('content')},
              url:"{{route('cart.remove')}}",
              success:function(data){               
               if(data){
