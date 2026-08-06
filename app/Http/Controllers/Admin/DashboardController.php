@@ -32,6 +32,8 @@ class DashboardController extends Controller
         $total_product = Product::count();
         $total_customer = Customer::count();
         $pendingOrders = Order::where('order_status', OrderStatus::where('slug', 'pending')->value('id') ?? 1)->count();
+        $lowStockProducts = Product::where('status', 1)->where('stock', '<=', 5)->orderBy('stock')->limit(6)->get(['id', 'name', 'stock', 'slug']);
+        $lowStockCount = Product::where('status', 1)->where('stock', '<=', 5)->count();
 
         $totalRevenue = Order::where('order_status', $completedStatus)->sum('amount');
         $monthRevenue = Order::where('order_status', $completedStatus)->where('created_at', '>=', $monthStart)->sum('amount');
@@ -74,7 +76,7 @@ class DashboardController extends Controller
         }
 
         return view('backEnd.admin.dashboard', compact(
-            'total_order', 'today_order', 'total_product', 'total_customer', 'pendingOrders',
+            'total_order', 'today_order', 'total_product', 'total_customer', 'pendingOrders', 'lowStockProducts', 'lowStockCount',
             'totalRevenue', 'monthRevenue', 'todayRevenue', 'revenueChange', 'latest_order',
             'latest_customer', 'ordersByStatus', 'topProducts', 'chartLabels', 'chartRevenue', 'chartOrders'
         ));

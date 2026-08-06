@@ -360,6 +360,15 @@ class OrderController extends Controller
             return redirect()->back();
         }
 
+        // Re-check inventory immediately before committing a POS order.
+        foreach (Cart::instance('pos_shopping')->content() as $cart) {
+            $product = Product::where(['id' => $cart->id, 'status' => 1])->first();
+            if (! $product || $product->stock < $cart->qty) {
+                Toastr::error("{$cart->name} does not have enough stock.", 'Stock unavailable');
+                return back();
+            }
+        }
+
         $subtotal = Cart::instance('pos_shopping')->subtotal();
         $subtotal = str_replace(',','',$subtotal);
         $subtotal = str_replace('.00', '',$subtotal);
@@ -423,6 +432,7 @@ class OrderController extends Controller
             $order_details->sale_price       =   $cart->price;
             $order_details->qty              =   $cart->qty;
             $order_details->save();
+            Product::where('id', $cart->id)->decrement('stock', $cart->qty);
         }
         Cart::instance('pos_shopping')->destroy();
         Session::forget('pos_shipping');
@@ -432,7 +442,11 @@ class OrderController extends Controller
         return redirect('admin/order/pending');
     }
     public function cart_add(Request $request){
-        $product = Product::select('id','name','stock','new_price','old_price','purchase_price','slug')->where(['id' => $request->id])->first();
+        $request->validate(['id' => ['required', 'integer']]);
+        $product = Product::select('id','name','stock','new_price','old_price','purchase_price','slug')->where(['id' => $request->id, 'status' => 1])->firstOrFail();
+        if ($product->stock < 1) {
+            return response()->json(['message' => 'This product is out of stock.'], 422);
+        }
         $qty = 1;
         $cartinfo = Cart::instance('pos_shopping')->add([
             'id' => $product->id,
@@ -441,7 +455,7 @@ class OrderController extends Controller
             'price' => $product->new_price,
             'options' => [
                 'slug' => $product->slug,
-                'image' => $product->image->image,
+                'image' => optional($product->image)->image,
                 'old_price' => $product->old_price,
                 'purchase_price' => $product->purchase_price,
                 'product_discount' => 0,
@@ -463,12 +477,20 @@ class OrderController extends Controller
         return view('backEnd.order.cart_details',compact('cartinfo'));
     }
     public function cart_increment(Request $request){
-        $qty = $request->qty + 1;
+        $cart = Cart::instance('pos_shopping')->get($request->id);
+        abort_unless($cart, 404);
+        $product = Product::findOrFail($cart->id);
+        $qty = $cart->qty + 1;
+        if (! $product->status || $qty > $product->stock) {
+            return response()->json(['message' => 'Requested quantity is not available in stock.'], 422);
+        }
         $cartinfo = Cart::instance('pos_shopping')->update($request->id, $qty);
         return response()->json($cartinfo);
     }
     public function cart_decrement(Request $request){
-        $qty = $request->qty - 1;
+        $cart = Cart::instance('pos_shopping')->get($request->id);
+        abort_unless($cart, 404);
+        $qty = max(0, $cart->qty - 1);
         $cartinfo = Cart::instance('pos_shopping')->update($request->id, $qty);
         return response()->json($cartinfo);
     }
