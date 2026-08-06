@@ -24,6 +24,37 @@ use Mail;
 
 class OrderController extends Controller
 {
+    public function operations_board()
+    {
+        $statuses = OrderStatus::where('status', 1)->orderBy('id')->get();
+        $orders = Order::with(['shipping', 'customer', 'user'])
+            ->whereIn('order_status', $statuses->pluck('id'))
+            ->latest()
+            ->limit(120)
+            ->get()
+            ->groupBy('order_status');
+        $users = User::where('status', 1)->orderBy('name')->get(['id', 'name']);
+
+        return view('backEnd.order.board', compact('statuses', 'orders', 'users'));
+    }
+
+    public function workflow_update(Request $request, Order $order)
+    {
+        $data = $request->validate([
+            'order_status' => ['required', 'integer', 'exists:order_statuses,id'],
+            'user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'admin_note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $order->order_status = $data['order_status'];
+        $order->user_id = $data['user_id'] ?? null;
+        $order->admin_note = $data['admin_note'] ?? null;
+        $order->save();
+
+        Toastr::success('Workflow updated.', 'Success');
+        return back();
+    }
+
     public function index($slug,Request $request){
         if($slug == 'all'){
             $order_status = (object) [

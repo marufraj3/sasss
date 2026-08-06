@@ -421,6 +421,10 @@ Route::group(['namespace'=>'Admin','middleware' => ['auth','lock','check_refer']
     Route::get('order/cart-shipping', [OrderController::class,'cart_shipping'])->name('admin.order.cart_shipping');
     Route::get('order/cart-clear', [OrderController::class,'cart_clear'])->name('admin.order.cart_clear');
 
+    // Order operations board
+    Route::get('orders/board', [OrderController::class, 'operations_board'])->name('admin.orders.board');
+    Route::post('orders/{order}/workflow', [OrderController::class, 'workflow_update'])->name('admin.orders.workflow');
+
     // Order route 
     Route::get('order/{slug}', [OrderController::class,'index'])->name('admin.orders');
     Route::get('order/edit/{invoice_id}', [OrderController::class,'order_edit'])->name('admin.order.edit');

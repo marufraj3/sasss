@@ -262,6 +262,9 @@
                 <div class="collapse" id="sidebar-orders">
                   <ul class="nav-second-level">
                     <li>
+                      <a href="{{route('admin.orders.board')}}"><i data-feather="trello"></i> Operations Board</a>
+                    </li>
+                    <li>
                       <a href="{{route('admin.orders',['slug'=>'all'])}}"><i data-feather="file-plus"></i> All Order</a>
                     </li>
                     @foreach($orderstatus as $value)
