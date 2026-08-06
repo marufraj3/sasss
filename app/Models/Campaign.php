@@ -11,6 +11,12 @@ class Campaign extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'starts_at' => 'datetime',
+        'ends_at' => 'datetime',
+        'faq_items' => 'array',
+    ];
+
     /**
      * Legacy primary product relation. Kept so existing campaigns continue to work.
      */

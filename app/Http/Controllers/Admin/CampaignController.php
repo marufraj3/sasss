@@ -112,7 +112,14 @@ class CampaignController extends Controller
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'banner_title' => ['nullable', 'string', 'max:255'],
+            'cta_text' => ['nullable', 'string', 'max:80'],
             'video' => ['nullable', 'url', 'max:255'],
+            'starts_at' => ['nullable', 'date'],
+            'ends_at' => ['nullable', 'date', 'after:starts_at'],
+            'faq_question' => ['nullable', 'array', 'max:8'],
+            'faq_question.*' => ['nullable', 'string', 'max:255'],
+            'faq_answer' => ['nullable', 'array', 'max:8'],
+            'faq_answer.*' => ['nullable', 'string', 'max:1500'],
             'short_description' => ['required', 'string'],
             'description' => ['required', 'string'],
             'review' => ['nullable', 'string', 'max:1000'],
@@ -129,7 +136,12 @@ class CampaignController extends Controller
 
     private function campaignInput(Request $request, array $validated, ?Campaign $campaign = null): array
     {
-        $input = collect($validated)->except(['product_ids', 'banner', 'image_one', 'image_two', 'image_three', 'image'])->all();
+        $input = collect($validated)->except(['product_ids', 'banner', 'image_one', 'image_two', 'image_three', 'image', 'faq_question', 'faq_answer'])->all();
+        $faqItems = collect($request->input('faq_question', []))->map(function ($question, $index) use ($request) {
+            $answer = $request->input('faq_answer.' . $index);
+            return $question && $answer ? ['question' => trim($question), 'answer' => trim($answer)] : null;
+        })->filter()->values()->all();
+        $input['faq_items'] = $faqItems ?: null;
         $input['slug'] = $this->uniqueSlug($validated['name'], $campaign);
         $input['status'] = $request->boolean('status') ? 1 : 0;
         $input['product_id'] = $validated['product_ids'][0]; // legacy pages and integrations

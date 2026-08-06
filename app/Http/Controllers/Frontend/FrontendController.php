@@ -336,6 +336,8 @@ class FrontendController extends Controller
     public function campaign($slug)
     {
         $campaign_data = Campaign::where(['slug' => $slug, 'status' => 1])
+            ->where(function ($query) { $query->whereNull('starts_at')->orWhere('starts_at', '<=', now()); })
+            ->where(function ($query) { $query->whereNull('ends_at')->orWhere('ends_at', '>=', now()); })
             ->with(['images', 'products.image'])
             ->firstOrFail();
 
