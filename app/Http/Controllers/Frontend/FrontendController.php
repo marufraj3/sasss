@@ -27,6 +27,7 @@ use Cart;
 use Auth;
 use Illuminate\Support\Facades\Cache;
 use App\Models\Wishlist;
+use App\Models\ShippingPromotion;
 use App\Services\ProductEventTracker;
 
 class FrontendController extends Controller
@@ -306,7 +307,9 @@ class FrontendController extends Controller
     {
         $data = $request->validate(['id' => ['required', 'integer']]);
         $shipping = ShippingCharge::where(['id' => $data['id'], 'status' => 1])->firstOrFail();
-        Session::put('shipping', (int) $shipping->amount);
+        $subtotal = (int) round(Cart::instance('shopping')->content()->sum(fn ($item) => $item->price * $item->qty));
+        $promotion = ShippingPromotion::where('status', 1)->first();
+        Session::put('shipping', $promotion && $subtotal >= $promotion->minimum_order ? 0 : (int) $shipping->amount);
 
         return view('frontEnd.layouts.ajax.cart');
     }

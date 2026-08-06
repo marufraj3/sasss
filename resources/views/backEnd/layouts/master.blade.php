@@ -421,7 +421,10 @@
                       <a href="{{route('shippingcharges.index')}}"><i data-feather="file-plus"></i> Shipping Charge</a>
                     </li>
                     <li>
-                      <a href="{{route('orderstatus.index')}}"><i data-feather="file-plus"></i> Order Status</a>
+                      <a href="{{route('shipping-promotion.edit')}}"><i data-feather="truck"></i> Free Delivery Offer</a>
+                    </li>
+                    <li>
+                      <a href="{{route('orderstatus.index')}}><i data-feather="file-plus"></i> Order Status</a>
                     </li>
                   </ul>
                 </div>

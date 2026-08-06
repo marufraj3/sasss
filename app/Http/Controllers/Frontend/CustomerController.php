@@ -24,6 +24,7 @@ use App\Models\Coupon;
 use App\Models\Wishlist;
 use App\Models\AbandonedCart;
 use App\Models\ReturnRequest;
+use App\Models\ShippingPromotion;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Session;
@@ -347,12 +348,14 @@ class CustomerController extends Controller
 
         $shippingcharge = ShippingCharge::where('status', 1)->orderBy('amount')->get();
         $select_charge = $shippingcharge->first();
-        Session::put('shipping', optional($select_charge)->amount ?? 0);
+        $shippingPromotion = ShippingPromotion::where('status', 1)->first();
+        $previewShipping = $shippingPromotion && $subtotal >= $shippingPromotion->minimum_order ? 0 : (optional($select_charge)->amount ?? 0);
+        Session::put('shipping', $previewShipping);
 
         $bkash_gateway = PaymentGateway::where(['status' => 1, 'type' => 'bkash'])->first();
         $shurjopay_gateway = PaymentGateway::where(['status' => 1, 'type' => 'shurjopay'])->first();
 
-        return view('frontEnd.layouts.customer.checkout', compact('shippingcharge', 'bkash_gateway', 'shurjopay_gateway'));
+        return view('frontEnd.layouts.customer.checkout', compact('shippingcharge', 'shippingPromotion', 'bkash_gateway', 'shurjopay_gateway'));
     }
 
     public function order_save(Request $request)
@@ -384,7 +387,8 @@ class CustomerController extends Controller
         $subtotal = (int) round($cartItems->sum(fn ($item) => $item->price * $item->qty));
         $discount = min(max(0, (int) Session::get('discount', 0)), $subtotal);
         $couponCode = data_get(Session::get('coupon'), 'code');
-        $shippingFee = (int) $shippingArea->amount;
+        $shippingPromotion = ShippingPromotion::where('status', 1)->first();
+        $shippingFee = $shippingPromotion && $subtotal >= $shippingPromotion->minimum_order ? 0 : (int) $shippingArea->amount;
 
         try {
             $order = DB::transaction(function () use ($data, $cartItems, $subtotal, &$discount, $couponCode, $shippingFee, $shippingArea) {

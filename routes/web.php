@@ -39,6 +39,7 @@ use App\Http\Controllers\Admin\ReturnRequestController;
 use App\Http\Controllers\Admin\CustomerTagController;
 use App\Http\Controllers\Admin\ProductAnalyticsController;
 use App\Http\Controllers\Admin\CacheController;
+use App\Http\Controllers\Admin\ShippingPromotionController;
 
 Auth::routes();
 
@@ -459,6 +460,8 @@ Route::group(['namespace'=>'Admin','middleware' => ['auth','lock','check_refer']
     Route::post('shipping-charge/inactive', [ShippingChargeController::class,'inactive'])->name('shippingcharges.inactive');
     Route::post('shipping-charge/active', [ShippingChargeController::class,'active'])->name('shippingcharges.active');
     Route::post('shipping-charge/destroy', [ShippingChargeController::class,'destroy'])->name('shippingcharges.destroy');
+    Route::get('shipping-promotion', [ShippingPromotionController::class, 'edit'])->name('shipping-promotion.edit');
+    Route::post('shipping-promotion', [ShippingPromotionController::class, 'update'])->name('shipping-promotion.update');
     
     // backend customer route 
     Route::get('customer', [CustomerManageController::class,'index'])->name('customers.index');

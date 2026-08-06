@@ -25,6 +25,10 @@
                                 
                             </div>
                             <div class="card-body">
+                                @if($shippingPromotion)
+                                    @php($remainingForFreeDelivery = max(0, $shippingPromotion->minimum_order - $subtotal))
+                                    <div class="alert {{ $remainingForFreeDelivery ? 'alert-info' : 'alert-success' }} py-2 small"><i class="fa fa-truck me-1"></i>{{ $remainingForFreeDelivery ? ($shippingPromotion->message ?: 'আর ৳'.$remainingForFreeDelivery.' কিনলেই ফ্রি ডেলিভারি পাবেন।') : 'অভিনন্দন! আপনার order-এ ফ্রি ডেলিভারি প্রযোজ্য।' }}</div>
+                                @endif
                                 <div class="row">
                                     <div class="col-sm-12">
                                         <div class="form-group mb-3">
