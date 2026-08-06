@@ -33,6 +33,7 @@ use App\Http\Controllers\Admin\ShippingChargeController;
 use App\Http\Controllers\Admin\ColorController;
 use App\Http\Controllers\Admin\SizeController;
 use App\Http\Controllers\Admin\TagManagerController;
+use App\Http\Controllers\Admin\CouponController;
 
 Auth::routes();
 
@@ -58,6 +59,8 @@ Route::group(['namespace'=>'Frontend', 'middleware' => ['ipcheck','check_refer']
      // cart route
     Route::post('cart/store', [ShoppingController::class, 'cart_store'])->name('cart.store');
     Route::post('campaign/cart', [ShoppingController::class, 'campaign_cart_store'])->name('campaign.cart.store');
+    Route::post('coupon/apply', [CustomerController::class, 'apply_coupon'])->name('coupon.apply');
+    Route::post('coupon/remove', [CustomerController::class, 'remove_coupon'])->name('coupon.remove');
 
     Route::get('/add-to-cart/{id}/{qty}', [ShoppingController::class, 'addTocartGet']);
 
@@ -305,6 +308,14 @@ Route::group(['namespace'=>'Admin','middleware' => ['auth','lock','check_refer']
     Route::post('campaign/active', [CampaignController::class,'active'])->name('campaign.active');
     Route::post('campaign/destroy', [CampaignController::class,'destroy'])->name('campaign.destroy');
     Route::post('campaign/image/destroy', [CampaignController::class,'imgdestroy'])->name('campaign.image.destroy');
+
+    // coupons and promotion rules
+    Route::get('coupons', [CouponController::class, 'index'])->name('coupons.index');
+    Route::get('coupons/create', [CouponController::class, 'create'])->name('coupons.create');
+    Route::post('coupons', [CouponController::class, 'store'])->name('coupons.store');
+    Route::get('coupons/{coupon}/edit', [CouponController::class, 'edit'])->name('coupons.edit');
+    Route::put('coupons/{coupon}', [CouponController::class, 'update'])->name('coupons.update');
+    Route::delete('coupons/{coupon}', [CouponController::class, 'destroy'])->name('coupons.destroy');
    
     // settings route 
     Route::get('settings/manage', [GeneralSettingController::class,'index'])->name('settings.index');

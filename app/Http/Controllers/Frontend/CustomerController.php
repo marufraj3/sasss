@@ -20,6 +20,7 @@ use App\Models\SmsGateway;
 use App\Models\GeneralSetting;
 use App\Models\Product;
 use App\Models\OrderStatus;
+use App\Models\Coupon;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Session;
@@ -34,7 +35,7 @@ class CustomerController extends Controller
 {
     function __construct()
     {
-        $this->middleware('customer', ['except' => ['register','store','verify','resendotp','account_verify','login','signin','logout','checkout','forgot_password','forgot_verify','forgot_reset','forgot_store','forgot_resend','order_save','order_success','order_track','order_track_result']]);
+        $this->middleware('customer', ['except' => ['register','store','verify','resendotp','account_verify','login','signin','logout','checkout','forgot_password','forgot_verify','forgot_reset','forgot_store','forgot_resend','order_save','order_success','order_track','order_track_result','apply_coupon','remove_coupon']]);
     }
 
     public function review(Request $request){
@@ -253,11 +254,49 @@ class CustomerController extends Controller
         Toastr::success('You are logout successfully', 'success!');
         return redirect()->route('customer.login');
     }
+    public function apply_coupon(Request $request)
+    {
+        if (Cart::instance('shopping')->count() <= 0) {
+            return back()->withErrors(['coupon' => 'কার্ট খালি থাকলে coupon ব্যবহার করা যাবে না।']);
+        }
+
+        $data = $request->validate(['code' => ['required', 'string', 'max:60']]);
+        $subtotal = (int) round(Cart::instance('shopping')->content()->sum(fn ($item) => $item->price * $item->qty));
+        $coupon = Coupon::where('code', Str::upper(trim($data['code'])))->first();
+
+        if (! $coupon || ! $coupon->isAvailableFor($subtotal)) {
+            Session::forget(['coupon', 'discount']);
+            return back()->withErrors(['coupon' => 'এই coupon টি এখন ব্যবহারযোগ্য নয় অথবা আপনার cart-এর ন্যূনতম মূল্য পূরণ হয়নি।']);
+        }
+
+        $discount = $coupon->discountFor($subtotal);
+        Session::put('coupon', ['id' => $coupon->id, 'code' => $coupon->code]);
+        Session::put('discount', $discount);
+
+        return back()->with('success', "Coupon applied! আপনি ৳{$discount} সাশ্রয় করছেন।");
+    }
+
+    public function remove_coupon()
+    {
+        Session::forget(['coupon', 'discount']);
+        return back()->with('success', 'Coupon removed.');
+    }
+
     public function checkout()
     {
         if (Cart::instance('shopping')->count() <= 0) {
             Toastr::error('Your shopping cart is empty.', 'Cart is empty');
             return redirect()->route('home');
+        }
+
+        $subtotal = (int) round(Cart::instance('shopping')->content()->sum(fn ($item) => $item->price * $item->qty));
+        if ($couponId = data_get(Session::get('coupon'), 'id')) {
+            $coupon = Coupon::find($couponId);
+            if ($coupon && $coupon->isAvailableFor($subtotal)) {
+                Session::put('discount', $coupon->discountFor($subtotal));
+            } else {
+                Session::forget(['coupon', 'discount']);
+            }
         }
 
         $shippingcharge = ShippingCharge::where('status', 1)->orderBy('amount')->get();
@@ -298,10 +337,23 @@ class CustomerController extends Controller
         $shippingArea = ShippingCharge::where(['id' => $data['area'], 'status' => 1])->firstOrFail();
         $subtotal = (int) round($cartItems->sum(fn ($item) => $item->price * $item->qty));
         $discount = min(max(0, (int) Session::get('discount', 0)), $subtotal);
+        $couponCode = data_get(Session::get('coupon'), 'code');
         $shippingFee = (int) $shippingArea->amount;
 
         try {
-            $order = DB::transaction(function () use ($data, $cartItems, $subtotal, $discount, $shippingFee, $shippingArea) {
+            $order = DB::transaction(function () use ($data, $cartItems, $subtotal, &$discount, $couponCode, $shippingFee, $shippingArea) {
+                // Lock coupon usage as well as stock so a limited-use code cannot be oversold.
+                if ($couponCode) {
+                    $coupon = Coupon::where('code', $couponCode)->lockForUpdate()->first();
+                    if (! $coupon || ! $coupon->isAvailableFor($subtotal)) {
+                        throw ValidationException::withMessages(['coupon' => 'এই coupon টি আর ব্যবহারযোগ্য নয়। আবার চেষ্টা করুন।']);
+                    }
+                    $discount = $coupon->discountFor($subtotal);
+                    $coupon->increment('usage_count');
+                } else {
+                    $discount = 0;
+                }
+
                 // Re-check and reserve inventory inside the transaction to prevent overselling.
                 foreach ($cartItems as $item) {
                     $product = Product::where('id', $item->id)->lockForUpdate()->first();

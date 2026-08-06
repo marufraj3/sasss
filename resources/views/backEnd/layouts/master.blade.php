@@ -350,6 +350,9 @@
                     <li>
                       <a href="{{route('campaign.index')}}"><i data-feather="file-plus"></i> Campaign</a>
                     </li>
+                    <li>
+                      <a href="{{route('coupons.index')}}"><i data-feather="tag"></i> Coupons</a>
+                    </li>
                   </ul>
                 </div>
               </li>

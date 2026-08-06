@@ -11,6 +11,7 @@
         $subtotal = str_replace(',', '', $subtotal);
         $subtotal = str_replace('.00', '', $subtotal);
         $shipping = Session::get('shipping') ? Session::get('shipping') : 0;
+        $discount = (int) Session::get('discount', 0);
     @endphp
     <div class="container">
         <div class="row">
@@ -90,7 +91,21 @@
                                         </div>
                                     </div>
                                     <!-- col-end -->
-
+                                    <div class="col-sm-12">
+                                        <div class="form-group mb-3">
+                                            <label for="coupon_code">Coupon code <small class="text-muted">(ঐচ্ছিক)</small></label>
+                                            <div class="input-group">
+                                                @if(Session::get('coupon.code'))
+                                                    <input id="coupon_code" class="form-control" value="{{ Session::get('coupon.code') }}" readonly>
+                                                    <button class="btn btn-outline-danger" form="coupon-remove-form" type="submit">Remove</button>
+                                                @else
+                                                    <input id="coupon_code" name="code" form="coupon-form" class="form-control" placeholder="যেমন: WELCOME10">
+                                                    <button class="btn btn-outline-success" form="coupon-form" type="submit">Apply</button>
+                                                @endif
+                                            </div>
+                                            @error('coupon')<small class="text-danger d-block mt-1">{{ $message }}</small>@enderror
+                                        </div>
+                                    </div>
                                     <!-------------------->
                                     <!-- col-end -->
                                     <div class="col-sm-12">
@@ -217,11 +232,17 @@
                                                 </span><strong>{{ $shipping }}</strong></span>
                                         </td>
                                     </tr>
+                                    @if($discount > 0)
+                                    <tr>
+                                        <th colspan="3" class="text-end px-4 text-success">Coupon discount</th>
+                                        <td class="px-4 text-success">- ৳<strong>{{ number_format($discount) }}</strong></td>
+                                    </tr>
+                                    @endif
                                     <tr>
                                         <th colspan="3" class="text-end px-4">সর্বমোট</th>
                                         <td class="px-4">
                                             <span id="grand_total"><span class="alinur">৳
-                                                </span><strong>{{ $subtotal + $shipping }}</strong></span>
+                                                </span><strong>{{ number_format($subtotal + $shipping - $discount) }}</strong></span>
                                         </td>
                                     </tr>
                                 </tfoot>
@@ -234,6 +255,8 @@
         </div>
     </div>
 </section>
+<form id="coupon-form" action="{{ route('coupon.apply') }}" method="POST" class="d-none">@csrf</form>
+<form id="coupon-remove-form" action="{{ route('coupon.remove') }}" method="POST" class="d-none">@csrf</form>
 @endsection @push('script')
 <script src="{{ asset('public/frontEnd/') }}/js/parsley.min.js"></script>
 <script src="{{ asset('public/frontEnd/') }}/js/form-validation.init.js"></script>
