@@ -372,18 +372,28 @@ class OrderController extends Controller
     }
 
     public function order_create(){
-        $products = Product::select('id','name','new_price','product_code')->where(['status'=>1])->get();
-        $cartinfo  = Cart::instance('pos_shopping')->content();
+        $products = Product::where(['status' => 1])->where('stock', '>', 0)
+            ->with(['image', 'sizes'])
+            ->select('id', 'name', 'new_price', 'old_price', 'product_code', 'stock', 'pro_unit')
+            ->orderBy('name')
+            ->get();
+        $cartinfo = Cart::instance('pos_shopping')->content();
         $shippingcharge = ShippingCharge::where('status',1)->get();
         return view('backEnd.order.create',compact('products','cartinfo','shippingcharge'));
     }
     
     public function order_store(Request $request){
         $this->validate($request,[
-            'name'=>'required',
-            'phone'=>'required',
-            'address'=>'required',
-            'area'=>'required',
+            'name' => 'required|string|max:155',
+            'phone' => 'required|string|max:20',
+            'address' => 'required|string|max:255',
+            'area' => 'required|integer|exists:shipping_charges,id',
+            'paid_amount' => 'nullable|numeric|min:0',
+            'payment_method' => 'required|in:Cash,Card,bKash,Nagad,Cash On Delivery',
+            'order_page' => 'nullable|string|max:120',
+            'utm_source' => 'nullable|string|max:120',
+            'office_note' => 'nullable|string|max:2000',
+            'note' => 'nullable|string|max:2000',
         ]);
 
         if(Cart::instance('pos_shopping')->count() <= 0) {
@@ -403,8 +413,11 @@ class OrderController extends Controller
         $subtotal = Cart::instance('pos_shopping')->subtotal();
         $subtotal = str_replace(',','',$subtotal);
         $subtotal = str_replace('.00', '',$subtotal);
-        $discount = Session::get('pos_discount')+Session::get('product_discount');
-        $shippingfee  = ShippingCharge::find($request->area);
+        $discount = (int) Session::get('pos_discount', 0) + (int) Session::get('product_discount', 0);
+        $shippingfee = ShippingCharge::where(['id' => $request->area, 'status' => 1])->firstOrFail();
+        $finalAmount = max(0, ((int) $subtotal + (int) $shippingfee->amount) - $discount);
+        $paidAmount = min($finalAmount, (int) $request->input('paid_amount', 0));
+        $dueAmount = $finalAmount - $paidAmount;
         
         $exits_customer = Customer::where('phone',$request->phone)->select('phone','id')->first();
         if($exits_customer){
@@ -425,12 +438,15 @@ class OrderController extends Controller
          // order data save
         $order                   = new Order();
         $order->invoice_id       = rand(11111,99999);
-        $order->amount           = ($subtotal + $shippingfee->amount) - $discount;
-        $order->discount         = $discount ? $discount : 0;
+        $order->amount           = $finalAmount;
+        $order->discount         = $discount;
         $order->shipping_charge  = $shippingfee->amount;
-        $order->customer_id      =  $customer_id;
-        $order->order_status     = 1;
+        $order->customer_id      = $customer_id;
+        $order->order_status     = OrderStatus::where('slug', 'pending')->value('id') ?? 1;
         $order->note             = $request->note;
+        $order->office_note      = $request->office_note;
+        $order->order_page       = $request->order_page;
+        $order->utm_source       = $request->utm_source;
         $order->save();
 
         // shipping data save
@@ -447,9 +463,11 @@ class OrderController extends Controller
         $payment                 = new Payment();
         $payment->order_id       = $order->id;
         $payment->customer_id    = $customer_id;
-        $payment->payment_method = 'Cash On Delivery';
+        $payment->payment_method = $request->payment_method;
         $payment->amount         = $order->amount;
-        $payment->payment_status = 'pending';
+        $payment->paid_amount    = $paidAmount;
+        $payment->due_amount     = $dueAmount;
+        $payment->payment_status = $dueAmount === 0 ? 'paid' : ($paidAmount > 0 ? 'partial' : 'pending');
         $payment->save();
 
        // order details data save
@@ -472,9 +490,15 @@ class OrderController extends Controller
         Toastr::success('Thanks, Your order place successfully', 'Success!');
         return redirect('admin/order/pending');
     }
+    public function pos_customer(Request $request){
+        $data = $request->validate(['phone' => ['required', 'string', 'max:20']]);
+        $customer = Customer::where('phone', $data['phone'])->latest()->first();
+        return response()->json($customer ? ['name' => $customer->name, 'address' => $customer->address] : null);
+    }
+
     public function cart_add(Request $request){
         $request->validate(['id' => ['required', 'integer']]);
-        $product = Product::select('id','name','stock','new_price','old_price','purchase_price','slug')->where(['id' => $request->id, 'status' => 1])->firstOrFail();
+        $product = Product::select('id','name','stock','new_price','old_price','purchase_price','slug','pro_unit')->where(['id' => $request->id, 'status' => 1])->firstOrFail();
         if ($product->stock < 1) {
             return response()->json(['message' => 'This product is out of stock.'], 422);
         }
@@ -489,6 +513,7 @@ class OrderController extends Controller
                 'image' => optional($product->image)->image,
                 'old_price' => $product->old_price,
                 'purchase_price' => $product->purchase_price,
+                'pro_unit' => $product->pro_unit,
                 'product_discount' => 0,
             ],
         ]);
@@ -506,6 +531,11 @@ class OrderController extends Controller
         }
         Session::put('product_discount',$discount);
         return view('backEnd.order.cart_details',compact('cartinfo'));
+    }
+    public function cart_discount(Request $request){
+        $data = $request->validate(['discount' => ['nullable', 'numeric', 'min:0']]);
+        Session::put('pos_discount', (int) ($data['discount'] ?? 0));
+        return response()->json(['status' => 'success']);
     }
     public function cart_increment(Request $request){
         $cart = Cart::instance('pos_shopping')->get($request->id);
@@ -539,6 +569,7 @@ class OrderController extends Controller
                 'image' => $cart->options->image,
                 'old_price' => $cart->options->old_price,
                 'purchase_price' => $cart->options->purchase_price,
+                'pro_unit' => $cart->options->pro_unit ?? null,
                 'product_discount' => $request->discount,
             ],
         ]);
