@@ -668,35 +668,25 @@ class CustomerController extends Controller
         return view('frontEnd.layouts.customer.order_track');
     }
 
-     public function order_track_result(Request $request){
-       
-       $phone = $request->phone;
-       $invoice_id = $request->invoice_id;
-           
-       if($phone !=null && $invoice_id==null){
-        $order = DB::table('orders')
-        ->join('shippings','orders.id','=','shippings.order_id')
-        ->where(['shippings.phone' => $request->phone])
-        ->get();
-        
-       }else if($invoice_id && $phone){
-         $order = DB::table('orders')
-        ->join('shippings','orders.id','=','shippings.order_id')
-        ->where(['orders.invoice_id' => $request->invoice_id, 'shippings.phone'=>$request->phone])
-        ->get();
-       }
-        
-       if($order->count() == 0){
-           
-            Toastr::error('message', 'Something Went Wrong !');
-            return redirect()->back();
-       }
-       
-    //   return $order->count();
-        
-        
-        
-        return view('frontEnd.layouts.customer.tracking_result',compact('order'));
+    public function order_track_result(Request $request)
+    {
+        $data = $request->validate([
+            'phone' => ['required', 'string', 'min:10', 'max:20'],
+            'invoice_id' => ['nullable', 'string', 'max:80'],
+        ]);
+
+        $orders = Order::with(['shipping', 'status', 'orderdetails', 'courierShipment'])
+            ->whereHas('shipping', fn ($query) => $query->where('phone', $data['phone']))
+            ->when($data['invoice_id'] ?? null, fn ($query, $invoice) => $query->where('invoice_id', $invoice))
+            ->latest()
+            ->get();
+
+        if ($orders->isEmpty()) {
+            Toastr::error('No order was found with these details.', 'Tracking unavailable');
+            return back();
+        }
+
+        return view('frontEnd.layouts.customer.tracking_result', compact('orders'));
     }
 
 

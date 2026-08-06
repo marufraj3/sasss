@@ -450,6 +450,9 @@
                     <li>
                       <a href="{{route('courierapi.manage')}}"><i data-feather="file-plus"></i> Courier API</a>
                     </li>
+                    <li>
+                      <a href="{{route('courier-shipments.index')}}"><i data-feather="truck"></i> Courier Shipments</a>
+                    </li>
                   </ul>
                 </div>
               </li>

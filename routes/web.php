@@ -40,6 +40,7 @@ use App\Http\Controllers\Admin\CustomerTagController;
 use App\Http\Controllers\Admin\ProductAnalyticsController;
 use App\Http\Controllers\Admin\CacheController;
 use App\Http\Controllers\Admin\ShippingPromotionController;
+use App\Http\Controllers\Admin\CourierShipmentController;
 
 Auth::routes();
 
@@ -224,6 +225,9 @@ Route::group(['namespace'=>'Admin','middleware' => ['auth','lock','check_refer']
     // courierapi
     Route::get('courierapi/manage', [ApiIntegrationController::class,'courier_manage'])->name('courierapi.manage');
     Route::post('courierapi/save', [ApiIntegrationController::class,'courier_update'])->name('courierapi.update');
+    Route::get('courier-shipments', [CourierShipmentController::class, 'index'])->name('courier-shipments.index');
+    Route::post('courier-shipments', [CourierShipmentController::class, 'store'])->name('courier-shipments.store');
+    Route::post('courier-shipments/{courierShipment}/status', [CourierShipmentController::class, 'updateStatus'])->name('courier-shipments.status');
 
     // attribute
     Route::get('orderstatus/manage', [OrderStatusController::class,'index'])->name('orderstatus.index');
