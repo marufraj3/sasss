@@ -574,9 +574,8 @@
     });
 </script>
 <!-- Ecommerce tracking -->
-<script>
-(function () {
-    const item = @json([
+@php
+    $analyticsItem = [
         'item_id' => (string) $details->id,
         'item_name' => $details->name,
         'price' => (float) $details->new_price,
@@ -585,7 +584,11 @@
         'item_variant' => $details->pro_unit,
         'currency' => 'BDT',
         'quantity' => 1,
-    ]);
+    ];
+@endphp
+<script>
+(function () {
+    const item = @json($analyticsItem);
     window.dataLayer = window.dataLayer || [];
     dataLayer.push({ ecommerce: null });
     dataLayer.push({ event: 'view_item', ecommerce: { currency: 'BDT', value: item.price, items: [item] } });

@@ -106,17 +106,22 @@
 @push('script')
 <script src="{{asset('public/frontEnd/')}}/js/parsley.min.js"></script>
 <script src="{{asset('public/frontEnd/')}}/js/form-validation.init.js"></script>
+@php
+    $purchaseItems = $order->orderdetails->map(function ($detail) {
+        return [
+            'item_id' => (string) $detail->product_id,
+            'item_name' => $detail->product_name,
+            'price' => (float) $detail->sale_price,
+            'quantity' => (int) $detail->qty,
+            'currency' => 'BDT',
+        ];
+    })->values();
+@endphp
 <script>
 (function () {
     const transactionId = @json((string) $order->invoice_id);
     if (sessionStorage.getItem('purchase-tracked-' + transactionId)) return;
-    const items = @json($order->orderdetails->map(fn ($detail) => [
-        'item_id' => (string) $detail->product_id,
-        'item_name' => $detail->product_name,
-        'price' => (float) $detail->sale_price,
-        'quantity' => (int) $detail->qty,
-        'currency' => 'BDT',
-    ])->values());
+    const items = @json($purchaseItems);
     window.dataLayer = window.dataLayer || [];
     dataLayer.push({ ecommerce: null });
     dataLayer.push({ event: 'purchase', ecommerce: { transaction_id: transactionId, value: {{ (float) $order->amount }}, shipping: {{ (float) $order->shipping_charge }}, currency: 'BDT', items: items } });
