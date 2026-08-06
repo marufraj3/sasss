@@ -214,14 +214,19 @@ class FrontendController extends Controller
     public function details($slug)
     {
         $details = Product::where(['slug' => $slug, 'status' => 1])
-            ->with('image', 'images', 'category', 'subcategory', 'childcategory')
+            ->with(['image', 'images', 'category', 'subcategory', 'childcategory', 'brand'])
+            ->withCount('reviews')
             ->firstOrFail();
         $products = Product::where(['category_id' => $details->category_id, 'status' => 1])
+            ->where('id', '!=', $details->id)
+            ->where('stock', '>', 0)
             ->with('image')
-            ->select('id', 'name', 'slug', 'new_price', 'old_price')
+            ->select('id', 'name', 'slug', 'new_price', 'old_price', 'category_id')
+            ->latest('id')
+            ->limit(12)
             ->get();
-        $shippingcharge = ShippingCharge::where('status', 1)->get();
-        $reviews = Review::where('product_id', $details->id)->get();
+        $shippingcharge = ShippingCharge::where('status', 1)->orderBy('amount')->get();
+        $reviews = Review::where('product_id', $details->id)->latest()->get();
         $productcolors = Productcolor::where('product_id', $details->id)
             ->with('color')
             ->get();
@@ -276,9 +281,10 @@ class FrontendController extends Controller
 
     public function shipping_charge(Request $request)
     {
+        $data = $request->validate(['id' => ['required', 'integer']]);
+        $shipping = ShippingCharge::where(['id' => $data['id'], 'status' => 1])->firstOrFail();
+        Session::put('shipping', (int) $shipping->amount);
 
-        $shipping = ShippingCharge::where(['id' => $request->id])->first();
-        Session::put('shipping', $shipping->amount);
         return view('frontEnd.layouts.ajax.cart');
     }
 

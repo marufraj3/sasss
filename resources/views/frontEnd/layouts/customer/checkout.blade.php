@@ -1,5 +1,9 @@
 @extends('frontEnd.layouts.master') @section('title', 'Customer Checkout') @push('css')
 <link rel="stylesheet" href="{{ asset('public/frontEnd/css/select2.min.css') }}" />
+<style>
+.checkout-shipping .card,.cart_details .card{border:1px solid #e5ece8;border-radius:14px;overflow:hidden;box-shadow:0 8px 24px rgba(20,43,33,.06)}
+.checkout-shipping .card-header,.cart_details .card-header{background:#f3faf6;border-bottom:1px solid #dce9e2}.order_place{width:100%;min-height:50px;border-radius:9px;font-weight:800}.checkout-trust{font-size:.86rem;color:#4d6258;background:#f5f8f6;border-radius:8px;padding:12px;margin-top:12px}
+</style>
 @endpush @section('content')
 <section class="chheckout-section">
     @php
@@ -39,10 +43,9 @@
                                     <div class="col-sm-12">
                                         <div class="form-group mb-3">
                                             <label for="phone">আপনার নাম্বার লিখুন *</label>
-                                            <input type="text" minlength="11" id="number" maxlength="11"
-                                                pattern="0[0-9]+"
-                                                title="please enter number only and 0 must first character"
-                                                title="Please enter an 11-digit number." id="phone"
+                                            <input type="tel" inputmode="numeric" minlength="11" id="phone" maxlength="20"
+                                                pattern="[0-9+ -]+"
+                                                title="সঠিক মোবাইল নম্বর দিন"
                                                 class="form-control @error('phone') is-invalid @enderror" name="phone"
                                                 value="{{ old('phone') }}"
                                                 required/>
@@ -62,7 +65,7 @@
                                                 name="address"
                                                 value="{{ old('address') }}"
                                                 required/>
-                                            @error('email')
+                                            @error('address')
                                                 <span class="invalid-feedback" role="alert">
                                                     <strong>{{ $message }}</strong>
                                                 </span>
@@ -76,10 +79,10 @@
                                                 class="form-control @error('area') is-invalid @enderror" name="area"
                                                 required>
                                                 @foreach ($shippingcharge as $key => $value)
-                                                    <option value="{{ $value->id }}">{{ $value->name }}</option>
+                                                    <option value="{{ $value->id }}" @selected(old('area') == $value->id)>{{ $value->name }} — ৳{{ number_format($value->amount) }}</option>
                                                 @endforeach
                                             </select>
-                                            @error('email')
+                                            @error('area')
                                                 <span class="invalid-feedback" role="alert">
                                                     <strong>{{ $message }}</strong>
                                                 </span>
@@ -132,7 +135,8 @@
                                     <!-------------------->
                                     <div class="col-sm-12">
                                         <div class="form-group">
-                                            <button class="order_place" type="submit">অর্ডার করুন</button>
+                                            <button class="order_place" type="submit" id="place-order-button">নিরাপদে অর্ডার করুন</button>
+                                            <div class="checkout-trust"><i class="fa fa-shield-alt me-1"></i> আপনার তথ্য নিরাপদ রাখা হবে। ক্যাশ অন ডেলিভারিতে পণ্য পেয়ে মূল্য পরিশোধ করুন।</div>
                                         </div>
                                     </div>
                                 </div>
@@ -237,6 +241,12 @@
 <script>
     $(document).ready(function() {
         $(".select2").select2();
+        $('form[action="{{ route('customer.ordersave') }}"]').on('submit', function () {
+            const button = $('#place-order-button');
+            if (this.checkValidity() && !button.prop('disabled')) {
+                button.prop('disabled', true).text('অর্ডার প্রসেস হচ্ছে…');
+            }
+        });
     });
 </script>
 <script>

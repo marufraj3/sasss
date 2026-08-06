@@ -32,6 +32,12 @@ class ShoppingController extends Controller
         $this->addProductToCart($request);
         Toastr::success('Product successfully added to cart', 'Success!');
 
+        // Product details exposes both actions: keep shopping for "add to cart",
+        // or go straight to checkout for "buy now".
+        if ($request->has('add_cart')) {
+            return back();
+        }
+
         return redirect()->route('customer.checkout');
     }
 

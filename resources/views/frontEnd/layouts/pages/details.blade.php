@@ -14,19 +14,22 @@
 <meta name="twitter:description" content="{{ $details->meta_description }}" />
 <meta name="twitter:creator" content="gomobd.com" />
 <meta property="og:url" content="{{ route('product', $details->slug) }}" />
-<meta name="twitter:image" content="{{ asset($details->image->image) }}" />
+<meta name="twitter:image" content="{{ asset(optional($details->image)->image) }}" />
 
 <!-- Open Graph data -->
 <meta property="og:title" content="{{ $details->name }}" />
 <meta property="og:type" content="product" />
 <meta property="og:url" content="{{ route('product', $details->slug) }}" />
-<meta property="og:image" content="{{ asset($details->image->image) }}" />
+<meta property="og:image" content="{{ asset(optional($details->image)->image) }}" />
 <meta property="og:description" content="{{ $details->meta_description }}" />
 <meta property="og:site_name" content="{{ $details->name }}" />
 @endpush
 
 @push('css')
 <link rel="stylesheet" href="{{ asset('public/frontEnd/css/zoomsl.css') }}">
+<style>
+.product-trust-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}.product-trust-grid div{padding:9px 7px;background:#f2faf6;border:1px solid #dcece3;border-radius:8px;text-align:center;font-size:12px;font-weight:700;color:#24533f}.product-save{display:inline-block;margin:4px 0 12px;background:#fff0e6;color:#b8520a;padding:5px 9px;border-radius:5px;font-size:.9rem;font-weight:700}.stock-status{font-size:.9rem;font-weight:700;color:#087f5b}@media(max-width:575px){.product-trust-grid{grid-template-columns:1fr}.single_product{gap:8px}.single_product input{width:100%}}
+</style>
 @endpush
 
 @section('content')
@@ -99,8 +102,16 @@
                                                     <del>৳{{ $details->old_price }}</del>
                                                 @endif ৳{{ $details->new_price }}
                                             </p>
-                                          
-                                           
+                                            @if($details->old_price && $details->old_price > $details->new_price)
+                                                <span class="product-save">আপনি সাশ্রয় করছেন ৳{{ number_format($details->old_price - $details->new_price) }}</span>
+                                            @endif
+                                            <div class="product-trust-grid">
+                                                <div><i class="fa fa-truck"></i><br>দ্রুত ডেলিভারি</div>
+                                                <div><i class="fa fa-money-bill-wave"></i><br>ক্যাশ অন ডেলিভারি</div>
+                                                <div><i class="fa fa-shield-alt"></i><br>নিরাপদ অর্ডার</div>
+                                            </div>
+                                            @if($details->stock > 0)<div class="stock-status"><i class="fa fa-circle-check"></i> স্টকে আছে — আজই অর্ডার করুন</div>@endif
+
                                             @if($details->note)
                                             <div class="">
                                                 <span class="text-danger font-italic fs-5"><strong class="bg-danger text-light px-1 py-1">Note :</strong> <strong> {{ $details->note }}</strong> </span>
