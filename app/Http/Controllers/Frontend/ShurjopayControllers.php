@@ -14,6 +14,10 @@ use Cart;
 class ShurjopayControllers extends Controller
 {
    public function payment_success(Request $request){
+            if (! class_exists(ShurjopayController::class)) {
+                Toastr::error('ShurjoPay is not installed or enabled.', 'Payment unavailable');
+                return redirect()->route('customer.checkout');
+            }
             $order_id = $request->order_id;
             $shurjopay_service = new ShurjopayController();
             $json = $shurjopay_service->verify($order_id);

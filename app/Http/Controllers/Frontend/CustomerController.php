@@ -353,7 +353,9 @@ class CustomerController extends Controller
         Session::put('shipping', $previewShipping);
 
         $bkash_gateway = PaymentGateway::where(['status' => 1, 'type' => 'bkash'])->first();
-        $shurjopay_gateway = PaymentGateway::where(['status' => 1, 'type' => 'shurjopay'])->first();
+        $shurjopay_gateway = class_exists(ShurjopayController::class)
+            ? PaymentGateway::where(['status' => 1, 'type' => 'shurjopay'])->first()
+            : null;
 
         return view('frontEnd.layouts.customer.checkout', compact('shippingcharge', 'shippingPromotion', 'bkash_gateway', 'shurjopay_gateway'));
     }
@@ -369,7 +371,7 @@ class CustomerController extends Controller
         if (PaymentGateway::where(['status' => 1, 'type' => 'bkash'])->exists()) {
             $paymentMethods[] = 'bkash';
         }
-        if (PaymentGateway::where(['status' => 1, 'type' => 'shurjopay'])->exists()) {
+        if (class_exists(ShurjopayController::class) && PaymentGateway::where(['status' => 1, 'type' => 'shurjopay'])->exists()) {
             $paymentMethods[] = 'shurjopay';
         }
 
