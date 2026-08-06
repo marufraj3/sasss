@@ -306,60 +306,33 @@ class FrontendController extends Controller
         $areas = District::where(['district' => $request->id])->pluck('area_name', 'id');
         return response()->json($areas);
     }
-  public function campaign($slug)
-{
-    // ক্যাম্পেইন ডাটা খুঁজুন
-    $campaign_data = Campaign::where('slug', $slug)->with('images')->first();
+    public function campaign($slug)
+    {
+        $campaign_data = Campaign::where(['slug' => $slug, 'status' => 1])
+            ->with(['images', 'products.image'])
+            ->firstOrFail();
 
-    if (!$campaign_data) {
-        abort(404, 'Campaign not found');
+        // Older landing pages have one product in campaigns.product_id. New pages can
+        // feature multiple products through the campaigns_products pivot table.
+        $products = $campaign_data->products
+            ->filter(fn ($product) => (int) $product->status === 1 && (int) $product->stock > 0)
+            ->values();
+
+        if ($products->isEmpty() && $campaign_data->product_id) {
+            $legacyProduct = Product::where(['id' => $campaign_data->product_id, 'status' => 1])
+                ->with('image')
+                ->first();
+            if ($legacyProduct) {
+                $products->push($legacyProduct);
+            }
+        }
+
+        abort_if($products->isEmpty(), 404, 'No available products in this campaign.');
+
+        $shippingcharge = ShippingCharge::where('status', 1)->orderBy('amount')->get();
+
+        return view('frontEnd.layouts.pages.campaign.campaign', compact('campaign_data', 'products', 'shippingcharge'));
     }
-
-    // প্রোডাক্ট খুঁজুন
-    $product = Product::where('id', $campaign_data->product_id)
-        ->where('status', 1)
-        ->with('image')
-        ->first();
-
-    if (!$product) {
-        abort(404, 'Product not found');
-    }
-
-    // পুরোনো কার্ট খালি করুন
-    Cart::instance('shopping')->destroy();
-
-    // নতুন প্রোডাক্ট কার্টে যোগ করুন
-    $cart_count = Cart::instance('shopping')->count();
-    if ($cart_count == 0) {
-        Cart::instance('shopping')->add([
-            'id' => $product->id,
-            'name' => $product->name,
-            'qty' => 1,
-            'price' => $product->new_price,
-            'options' => [
-                'slug' => $product->slug,
-                'image' => $product->image->image ?? null,
-                'old_price' => $product->old_price,
-                'purchase_price' => $product->purchase_price,
-            ],
-        ]);
-    }
-
-    // শিপিং চার্জ
-    $shippingcharge = ShippingCharge::where('status', 1)->get();
-    $select_charge = ShippingCharge::where('status', 1)->first();
-
-    if ($select_charge) {
-        Session::put('shipping', $select_charge->amount);
-    } else {
-        Session::forget('shipping'); // fallback
-    }
-
-    return view(
-        'frontEnd.layouts.pages.campaign.campaign',
-        compact('campaign_data', 'product', 'shippingcharge')
-    );
-}
 
 
     public function payment_success(Request $request)

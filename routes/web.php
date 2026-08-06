@@ -36,19 +36,6 @@ use App\Http\Controllers\Admin\TagManagerController;
 
 Auth::routes();
 
-Route::get('/cc', function() {
-    Artisan::call('config:clear');
-    Artisan::call('cache:clear');
-    Artisan::call('route:clear');
-    Artisan::call('view:clear');
-    return "Cleared!";
-});
-
-Route::get('/controller', function() {
-    Artisan::call('make:controller Admin/TagManagerController');
-    return "Controller Done!";
-});
-
 Route::group(['namespace'=>'Frontend', 'middleware' => ['ipcheck','check_refer']], function() {
     Route::get('/', [FrontendController::class, 'index'])->name('home');
     Route::get('category/{category}', [FrontendController::class, 'category'])->name('category');
@@ -68,11 +55,9 @@ Route::group(['namespace'=>'Frontend', 'middleware' => ['ipcheck','check_refer']
     Route::get('districts', [FrontendController::class, 'districts'])->name('districts');
     Route::get('/campaign/{slug}', [FrontendController::class, 'campaign'])->name('campaign');
     Route::get('/offer', [FrontendController::class, 'offers'])->name('offers');
-     Route::get('/payment-success', [FrontEndController::class, 'payment_success'])->name('payment_success');
-    Route::get('/payment-cancel', [FrontEndController::class, 'payment_cancel'])->name('payment_cancel');
-
-    // cart route
+     // cart route
     Route::post('cart/store', [ShoppingController::class, 'cart_store'])->name('cart.store');
+    Route::post('campaign/cart', [ShoppingController::class, 'campaign_cart_store'])->name('campaign.cart.store');
 
     Route::get('/add-to-cart/{id}/{qty}', [ShoppingController::class, 'addTocartGet']);
 
@@ -319,7 +304,7 @@ Route::group(['namespace'=>'Admin','middleware' => ['auth','lock','check_refer']
     Route::post('campaign/inactive', [CampaignController::class,'inactive'])->name('campaign.inactive');
     Route::post('campaign/active', [CampaignController::class,'active'])->name('campaign.active');
     Route::post('campaign/destroy', [CampaignController::class,'destroy'])->name('campaign.destroy');
-    Route::get('campaign/image/destroy', [CampaignController::class,'imgdestroy'])->name('campaign.image.destroy');
+    Route::post('campaign/image/destroy', [CampaignController::class,'imgdestroy'])->name('campaign.image.destroy');
    
     // settings route 
     Route::get('settings/manage', [GeneralSettingController::class,'index'])->name('settings.index');

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->increments('id');
             $table->string('name');
             $table->string('slug');
-            $table->string('date')->length('55');
+            $table->string('date')->length('55')->nullable();
             $table->text('short_description');
             $table->string('review');
             $table->text('description');

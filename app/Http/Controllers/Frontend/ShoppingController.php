@@ -29,26 +29,52 @@ class ShoppingController extends Controller
 
     public function cart_store(Request $request)
     {
-        $product = Product::where(['id' => $request->id])->first();
+        $this->addProductToCart($request);
+        Toastr::success('Product successfully added to cart', 'Success!');
+
+        return redirect()->route('customer.checkout');
+    }
+
+    /** Secure JSON endpoint used by conversion landing pages for multi-product carts. */
+    public function campaign_cart_store(Request $request)
+    {
+        $this->addProductToCart($request);
+
+        return response()->json([
+            'message' => 'Product added to cart.',
+            'count' => Cart::instance('shopping')->count(),
+            'checkout_url' => route('customer.checkout'),
+        ]);
+    }
+
+    private function addProductToCart(Request $request): void
+    {
+        $data = $request->validate([
+            'id' => ['required', 'integer', 'exists:products,id'],
+            'qty' => ['nullable', 'integer', 'min:1', 'max:20'],
+            'product_size' => ['nullable', 'string', 'max:100'],
+            'product_color' => ['nullable', 'string', 'max:100'],
+            'pro_unit' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $product = Product::where(['id' => $data['id'], 'status' => 1])->with('image')->firstOrFail();
+        abort_if((int) $product->stock < 1, 422, 'This product is currently out of stock.');
+
         Cart::instance('shopping')->add([
             'id' => $product->id,
             'name' => $product->name,
-            'qty' => $request->qty,
+            'qty' => $data['qty'] ?? 1,
             'price' => $product->new_price,
             'options' => [
                 'slug' => $product->slug,
-                'image' => $product->image->image,
-                'old_price' => $product->new_price,
+                'image' => optional($product->image)->image,
+                'old_price' => $product->old_price,
                 'purchase_price' => $product->purchase_price,
-                'product_size'=>$request->product_size,
-                'product_color'=>$request->product_color,
-                'pro_unit'=>$request->pro_unit,
+                'product_size' => $data['product_size'] ?? null,
+                'product_color' => $data['product_color'] ?? null,
+                'pro_unit' => $data['pro_unit'] ?? null,
             ],
         ]);
-
-        Toastr::success('Product successfully add to cart', 'Success!');
-        return redirect()->route('customer.checkout');
-        
     }
     public function cart_remove(Request $request)
     {

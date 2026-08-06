@@ -32,6 +32,7 @@
                         <tr>
                             <th>SL</th>
                             <th>Landing Page Title</th>
+                            <th>Products</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
@@ -42,7 +43,8 @@
                         @foreach($show_data as $key=>$value)
                         <tr>
                             <td>{{$loop->iteration}}</td>
-                            <td>{{$value->name}}</td>
+                            <td>{{$value->name}}<br><small class="text-muted">/campaign/{{$value->slug}}</small></td>
+                            <td><span class="badge bg-soft-info text-info">{{$value->products_count ?: ($value->product_id ? 1 : 0)}} products</span></td>
                             <td>@if($value->status==1)<span class="badge bg-soft-success text-success">Active</span> @else <span class="badge bg-soft-danger text-danger">Inactive</span> @endif</td>
                             <td>
                                 <div class="button-list">
