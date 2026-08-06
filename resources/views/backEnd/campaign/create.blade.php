@@ -23,6 +23,6 @@
 <script src="{{ asset('public/backEnd/assets/libs/select2/js/select2.min.js') }}"></script>
 <script src="{{ asset('public/backEnd/assets/libs/summernote/summernote-lite.min.js') }}"></script>
 <script>
-$(function () { $('.select2').select2({width: '100%'}); $('.summernote').summernote({height: 180, placeholder: 'Write clear, benefit-led content…'}); });
+$(function () { $('.select2').select2({width: '100%'}); $('.summernote').summernote({height: 180, placeholder: 'Write clear, benefit-led content…'}); let dragged=null; $('#section-builder label').on('dragstart',function(){dragged=this});$('#section-builder label').on('dragover',function(e){e.preventDefault()});$('#section-builder label').on('drop',function(e){e.preventDefault();if(dragged&&dragged!==this)$(this).before(dragged)}); });
 </script>
 @endsection

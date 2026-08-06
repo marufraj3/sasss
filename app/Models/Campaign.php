@@ -15,6 +15,8 @@ class Campaign extends Model
         'starts_at' => 'datetime',
         'ends_at' => 'datetime',
         'faq_items' => 'array',
+        'section_order' => 'array',
+        'daily_countdown' => 'boolean',
     ];
 
     /**

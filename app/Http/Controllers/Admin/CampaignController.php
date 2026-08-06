@@ -116,6 +116,10 @@ class CampaignController extends Controller
             'video' => ['nullable', 'url', 'max:255'],
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date', 'after:starts_at'],
+            'daily_countdown' => ['nullable', 'boolean'],
+            'daily_countdown_end' => ['nullable', 'date_format:H:i'],
+            'section_order' => ['nullable', 'array'],
+            'section_order.*' => ['in:products,story,reviews,faq'],
             'faq_question' => ['nullable', 'array', 'max:8'],
             'faq_question.*' => ['nullable', 'string', 'max:255'],
             'faq_answer' => ['nullable', 'array', 'max:8'],
@@ -144,6 +148,8 @@ class CampaignController extends Controller
         $input['faq_items'] = $faqItems ?: null;
         $input['slug'] = $this->uniqueSlug($validated['name'], $campaign);
         $input['status'] = $request->boolean('status') ? 1 : 0;
+        $input['daily_countdown'] = $request->boolean('daily_countdown');
+        $input['section_order'] = array_values(array_unique($request->input('section_order', ['products','story','reviews','faq'])));
         $input['product_id'] = $validated['product_ids'][0]; // legacy pages and integrations
 
         foreach (['banner', 'image_one', 'image_two', 'image_three'] as $field) {
