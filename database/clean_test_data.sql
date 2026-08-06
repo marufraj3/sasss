@@ -36,6 +36,12 @@ TRUNCATE TABLE social_media;
 TRUNCATE TABLE banners;
 TRUNCATE TABLE banner_categories;
 TRUNCATE TABLE create_pages;
+TRUNCATE TABLE shipping_promotions;
+TRUNCATE TABLE payment_gateways;
+TRUNCATE TABLE sms_gateways;
+TRUNCATE TABLE courierapis;
+TRUNCATE TABLE ecom_pixels;
+TRUNCATE TABLE google_tag_managers;
 TRUNCATE TABLE general_settings;
 SET FOREIGN_KEY_CHECKS=1;
 
