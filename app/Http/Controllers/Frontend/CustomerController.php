@@ -22,6 +22,7 @@ use App\Models\Product;
 use App\Models\OrderStatus;
 use App\Models\Coupon;
 use App\Models\Wishlist;
+use App\Models\AbandonedCart;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Session;
@@ -36,7 +37,7 @@ class CustomerController extends Controller
 {
     function __construct()
     {
-        $this->middleware('customer', ['except' => ['register','store','verify','resendotp','account_verify','login','signin','logout','checkout','forgot_password','forgot_verify','forgot_reset','forgot_store','forgot_resend','order_save','order_success','order_track','order_track_result','apply_coupon','remove_coupon']]);
+        $this->middleware('customer', ['except' => ['register','store','verify','resendotp','account_verify','login','signin','logout','checkout','forgot_password','forgot_verify','forgot_reset','forgot_store','forgot_resend','order_save','order_success','order_track','order_track_result','apply_coupon','remove_coupon','capture_abandoned_cart_contact']]);
     }
 
     public function review(Request $request){
@@ -310,6 +311,21 @@ class CustomerController extends Controller
         return back()->with('success', 'Coupon removed.');
     }
 
+    /** Captures a phone after checkout starts, enabling a legitimate recovery follow-up. */
+    public function capture_abandoned_cart_contact(Request $request)
+    {
+        $data = $request->validate(['phone' => ['required', 'string', 'min:10', 'max:20']]);
+        $token = Session::get('abandoned_cart_token');
+        if ($token) {
+            AbandonedCart::where(['token' => $token, 'status' => 'active'])->update([
+                'phone' => $data['phone'],
+                'last_activity_at' => now(),
+            ]);
+        }
+
+        return response()->noContent();
+    }
+
     public function checkout()
     {
         if (Cart::instance('shopping')->count() <= 0) {
@@ -318,6 +334,7 @@ class CustomerController extends Controller
         }
 
         $subtotal = (int) round(Cart::instance('shopping')->content()->sum(fn ($item) => $item->price * $item->qty));
+        $this->captureAbandonedCart($subtotal);
         if ($couponId = data_get(Session::get('coupon'), 'id')) {
             $coupon = Coupon::find($couponId);
             if ($coupon && $coupon->isAvailableFor($subtotal)) {
@@ -456,6 +473,7 @@ class CustomerController extends Controller
         }
 
         Cart::instance('shopping')->destroy();
+        $this->markAbandonedCartRecovered($data['phone']);
         Session::forget(['shipping', 'discount']);
         $this->sendOrderConfirmationSms($data['name'], $data['phone']);
 
@@ -511,6 +529,45 @@ class CustomerController extends Controller
         } catch (\Throwable $exception) {
             report($exception);
         }
+    }
+
+    /** Save checkout-started carts for follow-up reporting; no customer data is required. */
+    private function captureAbandonedCart(int $subtotal): void
+    {
+        $token = Session::get('abandoned_cart_token') ?: (string) Str::uuid();
+        Session::put('abandoned_cart_token', $token);
+
+        $items = Cart::instance('shopping')->content()->map(fn ($item) => [
+            'product_id' => (int) $item->id,
+            'name' => $item->name,
+            'qty' => (int) $item->qty,
+            'price' => (int) $item->price,
+            'image' => data_get($item, 'options.image'),
+        ])->values()->all();
+
+        AbandonedCart::updateOrCreate(['token' => $token], [
+            'customer_id' => Auth::guard('customer')->id(),
+            'cart_data' => $items,
+            'subtotal' => $subtotal,
+            'status' => 'active',
+            'last_activity_at' => now(),
+        ]);
+    }
+
+    private function markAbandonedCartRecovered(string $phone): void
+    {
+        $token = Session::get('abandoned_cart_token');
+        if (! $token) {
+            return;
+        }
+
+        AbandonedCart::where(['token' => $token, 'status' => 'active'])->update([
+            'phone' => $phone,
+            'status' => 'recovered',
+            'recovered_at' => now(),
+            'last_activity_at' => now(),
+        ]);
+        Session::forget('abandoned_cart_token');
     }
 
     public function orders()

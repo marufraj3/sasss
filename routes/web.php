@@ -34,6 +34,7 @@ use App\Http\Controllers\Admin\ColorController;
 use App\Http\Controllers\Admin\SizeController;
 use App\Http\Controllers\Admin\TagManagerController;
 use App\Http\Controllers\Admin\CouponController;
+use App\Http\Controllers\Admin\AbandonedCartController;
 
 Auth::routes();
 
@@ -61,6 +62,7 @@ Route::group(['namespace'=>'Frontend', 'middleware' => ['ipcheck','check_refer']
     Route::post('campaign/cart', [ShoppingController::class, 'campaign_cart_store'])->name('campaign.cart.store');
     Route::post('coupon/apply', [CustomerController::class, 'apply_coupon'])->name('coupon.apply');
     Route::post('coupon/remove', [CustomerController::class, 'remove_coupon'])->name('coupon.remove');
+    Route::post('abandoned-cart/contact', [CustomerController::class, 'capture_abandoned_cart_contact'])->name('abandoned-cart.contact');
 
     Route::get('/add-to-cart/{id}/{qty}', [ShoppingController::class, 'addTocartGet']);
 
@@ -319,6 +321,10 @@ Route::group(['namespace'=>'Admin','middleware' => ['auth','lock','check_refer']
     Route::get('coupons/{coupon}/edit', [CouponController::class, 'edit'])->name('coupons.edit');
     Route::put('coupons/{coupon}', [CouponController::class, 'update'])->name('coupons.update');
     Route::delete('coupons/{coupon}', [CouponController::class, 'destroy'])->name('coupons.destroy');
+
+    // checkout recovery operations
+    Route::get('abandoned-carts', [AbandonedCartController::class, 'index'])->name('abandoned-carts.index');
+    Route::post('abandoned-carts/{abandonedCart}/ignore', [AbandonedCartController::class, 'ignore'])->name('abandoned-carts.ignore');
    
     // settings route 
     Route::get('settings/manage', [GeneralSettingController::class,'index'])->name('settings.index');

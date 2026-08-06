@@ -353,6 +353,9 @@
                     <li>
                       <a href="{{route('coupons.index')}}"><i data-feather="tag"></i> Coupons</a>
                     </li>
+                    <li>
+                      <a href="{{route('abandoned-carts.index')}}"><i data-feather="shopping-cart"></i> Abandoned Carts</a>
+                    </li>
                   </ul>
                 </div>
               </li>

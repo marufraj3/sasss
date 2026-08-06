@@ -151,7 +151,7 @@
                                     <div class="col-sm-12">
                                         <div class="form-group">
                                             <button class="order_place" type="submit" id="place-order-button">নিরাপদে অর্ডার করুন</button>
-                                            <div class="checkout-trust"><i class="fa fa-shield-alt me-1"></i> আপনার তথ্য নিরাপদ রাখা হবে। ক্যাশ অন ডেলিভারিতে পণ্য পেয়ে মূল্য পরিশোধ করুন।</div>
+                                            <div class="checkout-trust"><i class="fa fa-shield-alt me-1"></i> আপনার তথ্য নিরাপদ রাখা হবে। অর্ডার অসম্পূর্ণ থাকলে সহায়তার জন্য আমরা যোগাযোগ করতে পারি।</div>
                                         </div>
                                     </div>
                                 </div>
@@ -264,6 +264,12 @@
 <script>
     $(document).ready(function() {
         $(".select2").select2();
+        $('#phone').on('blur', function () {
+            const phone = $(this).val().trim();
+            if (phone.length >= 10) {
+                $.post('{{ route('abandoned-cart.contact') }}', {phone: phone, _token: '{{ csrf_token() }}'});
+            }
+        });
         $('form[action="{{ route('customer.ordersave') }}"]').on('submit', function () {
             const button = $('#place-order-button');
             if (this.checkValidity() && !button.prop('disabled')) {
