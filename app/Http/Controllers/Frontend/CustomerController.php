@@ -609,7 +609,7 @@ class CustomerController extends Controller
     }
 
     public function order_success($id) {
-        $order = Order::where('id',$id)->firstOrFail();
+        $order = Order::with(['orderdetails', 'shipping', 'payment'])->findOrFail($id);
         return view('frontEnd.layouts.customer.order_success',compact('order'));
     }
     public function invoice(Request $request)

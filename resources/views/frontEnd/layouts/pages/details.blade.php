@@ -573,86 +573,36 @@
         });
     });
 </script>
-<!--Data Layer Start-->
-<script type="text/javascript">
+<!-- Ecommerce tracking -->
+<script>
+(function () {
+    const item = @json([
+        'item_id' => (string) $details->id,
+        'item_name' => $details->name,
+        'price' => (float) $details->new_price,
+        'item_brand' => optional($details->brand)->name,
+        'item_category' => optional($details->category)->name,
+        'item_variant' => $details->pro_unit,
+        'currency' => 'BDT',
+        'quantity' => 1,
+    ]);
     window.dataLayer = window.dataLayer || [];
-    dataLayer.push({
-        ecommerce: null
-    });
-    dataLayer.push({
-        event: "view_item",
-        ecommerce: {
-            items: [{
-                item_name: "{{ $details->name }}",
-                item_id: "{{ $details->id }}",
-                price: "{{ $details->new_price }}",
-                item_brand: "{{ $details->brand?$details->brand->name:'' }}",
-                item_category: "{{ $details->category->name }}",
-                item_variant: "{{ $details->pro_unit }}",
-                currency: "BDT",
-                quantity: {{ $details->stock ?? 0 }}
-            }],
-            impression: [
-                @foreach ($products as $value)
-                    {
-                        item_name: "{{ $value->name }}",
-                        item_id: "{{ $value->id }}",
-                        price: "{{ $value->new_price }}",
-                        item_brand: "{{ $details->brand?$details->brand->name:'' }}",
-                        item_category: "{{ $value->category ? $value->category->name : '' }}",
-                        item_variant: "{{ $value->pro_unit }}",
-                        currency: "BDT",
-                        quantity: {{ $value->stock ?? 0 }}
-                    },
-                @endforeach
-            ]
-        }
-    });
-</script>
-<script type="text/javascript">
-    $(document).ready(function() {
-        $('#add_to_cart').click(function() {
-            gtag("event", "add_to_cart", {
-                currency: "BDT",
-                value: "1.5",
-                items: [
-                    @foreach (Cart::instance('shopping')->content() as $cartInfo)
-                        {
-                            item_id: "{{$details->id}}",
-                            item_name: "{{$details->name}}",
-                            price: "{{$details->new_price}}",
-                            currency: "BDT",
-                            quantity: {{ $cartInfo->qty ?? 0 }}
-                        },
-                    @endforeach
-                ]
-            });
+    dataLayer.push({ ecommerce: null });
+    dataLayer.push({ event: 'view_item', ecommerce: { currency: 'BDT', value: item.price, items: [item] } });
+    if (typeof window.fbq === 'function') {
+        fbq('track', 'ViewContent', { content_ids: [item.item_id], content_name: item.item_name, content_type: 'product', value: item.price, currency: 'BDT' });
+    }
+    document.querySelectorAll('input[name="add_cart"], input[name="order_now"]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const quantity = Number(document.querySelector('input[name="qty"]')?.value || 1);
+            const trackedItem = Object.assign({}, item, { quantity: quantity });
+            dataLayer.push({ ecommerce: null });
+            dataLayer.push({ event: 'add_to_cart', ecommerce: { currency: 'BDT', value: trackedItem.price * quantity, items: [trackedItem] } });
+            if (typeof window.fbq === 'function') fbq('track', 'AddToCart', { content_ids: [item.item_id], content_type: 'product', value: trackedItem.price * quantity, currency: 'BDT' });
         });
     });
+})();
 </script>
-<script type="text/javascript">
-    $(document).ready(function() {
-        $('#order_now').click(function() {
-            gtag("event", "add_to_cart", {
-                currency: "BDT",
-                value: "1.5",
-                items: [
-                    @foreach (Cart::instance('shopping')->content() as $cartInfo)
-                        {
-                            item_id: "{{$details->id}}",
-                            item_name: "{{$details->name}}",
-                            price: "{{$details->new_price}}",
-                            currency: "BDT",
-                            quantity: {{ $cartInfo->qty ?? 0 }}
-                        },
-                    @endforeach
-                ]
-            });
-        });
-    });
-</script>
-
-<!-- Data Layer End-->
 <script>
     $(document).ready(function() {
         $(".related_slider").owlCarousel({

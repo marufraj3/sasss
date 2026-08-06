@@ -341,4 +341,9 @@
         }
     });
 </script>
+<script>
+if (typeof window.fbq === 'function') {
+    fbq('track', 'InitiateCheckout', { value: {{ (float) ($subtotal + $shipping - $discount) }}, currency: 'BDT', num_items: {{ Cart::instance('shopping')->count() }} });
+}
+</script>
 @endpush
