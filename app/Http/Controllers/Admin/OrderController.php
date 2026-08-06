@@ -373,7 +373,7 @@ class OrderController extends Controller
 
     public function order_create(){
         $products = Product::where(['status' => 1])->where('stock', '>', 0)
-            ->with(['image', 'sizes'])
+            ->with(['image', 'sizes', 'colors'])
             ->select('id', 'name', 'new_price', 'old_price', 'product_code', 'stock', 'pro_unit')
             ->orderBy('name')
             ->get();
@@ -476,6 +476,8 @@ class OrderController extends Controller
                     $detail->product_name = $item->name;
                     $detail->purchase_price = $item->options->purchase_price;
                     $detail->product_discount = $item->options->product_discount ?? 0;
+                    $detail->product_size = $item->options->product_size ?? null;
+                    $detail->product_color = $item->options->product_color ?? null;
                     $detail->sale_price = $item->price;
                     $detail->qty = $item->qty;
                     $detail->save();
@@ -502,16 +504,31 @@ class OrderController extends Controller
     }
 
     public function cart_add(Request $request){
-        $request->validate(['id' => ['required', 'integer']]);
-        $product = Product::select('id','name','stock','new_price','old_price','purchase_price','slug','pro_unit')->where(['id' => $request->id, 'status' => 1])->firstOrFail();
+        $data = $request->validate([
+            'id' => ['required', 'integer'],
+            'product_size' => ['nullable', 'string', 'max:100'],
+            'product_color' => ['nullable', 'string', 'max:100'],
+        ]);
+        $product = Product::where(['id' => $data['id'], 'status' => 1])->with(['image', 'sizes', 'colors'])->firstOrFail();
         if ($product->stock < 1) {
             return response()->json(['message' => 'This product is out of stock.'], 422);
         }
-        $qty = 1;
+        if ($product->sizes->isNotEmpty() && ! $data['product_size']) {
+            return response()->json(['message' => 'Please select a size before adding this product.'], 422);
+        }
+        if ($product->colors->isNotEmpty() && ! $data['product_color']) {
+            return response()->json(['message' => 'Please select a color before adding this product.'], 422);
+        }
+        if ($data['product_size'] && ! $product->sizes->pluck('sizeName')->contains($data['product_size'])) {
+            return response()->json(['message' => 'Selected size is invalid.'], 422);
+        }
+        if ($data['product_color'] && ! $product->colors->pluck('colorName')->contains($data['product_color'])) {
+            return response()->json(['message' => 'Selected color is invalid.'], 422);
+        }
         $cartinfo = Cart::instance('pos_shopping')->add([
             'id' => $product->id,
             'name' => $product->name,
-            'qty' => $qty,
+            'qty' => 1,
             'price' => $product->new_price,
             'options' => [
                 'slug' => $product->slug,
@@ -519,6 +536,8 @@ class OrderController extends Controller
                 'old_price' => $product->old_price,
                 'purchase_price' => $product->purchase_price,
                 'pro_unit' => $product->pro_unit,
+                'product_size' => $data['product_size'] ?? null,
+                'product_color' => $data['product_color'] ?? null,
                 'product_discount' => 0,
             ],
         ]);
