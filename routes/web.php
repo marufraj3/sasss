@@ -52,7 +52,7 @@ Route::group(['namespace'=>'Frontend', 'middleware' => ['ipcheck','check_refer']
     Route::get('products/{slug}', [FrontendController::class, 'products'])->name('products');
 
     Route::get('hot-deals', [FrontendController::class, 'hotdeals'])->name('hotdeals');
-    Route::get('livesearch', [FrontendController::class, 'livesearch'])->name('livesearch');
+    Route::get('livesearch', [FrontendController::class, 'livesearch'])->middleware('throttle:60,1')->name('livesearch');
     Route::get('search', [FrontendController::class, 'search'])->name('search');
     Route::get('product/{id}', [FrontendController::class, 'details'])->name('product');    
     Route::get('quick-view', [FrontendController::class, 'quickview'])->name('quickview');
@@ -63,8 +63,8 @@ Route::group(['namespace'=>'Frontend', 'middleware' => ['ipcheck','check_refer']
     Route::get('/campaign/{slug}', [FrontendController::class, 'campaign'])->name('campaign');
     Route::get('/offer', [FrontendController::class, 'offers'])->name('offers');
      // cart route
-    Route::post('cart/store', [ShoppingController::class, 'cart_store'])->name('cart.store');
-    Route::post('campaign/cart', [ShoppingController::class, 'campaign_cart_store'])->name('campaign.cart.store');
+    Route::post('cart/store', [ShoppingController::class, 'cart_store'])->middleware('throttle:20,1')->name('cart.store');
+    Route::post('campaign/cart', [ShoppingController::class, 'campaign_cart_store'])->middleware('throttle:20,1')->name('campaign.cart.store');
     Route::post('coupon/apply', [CustomerController::class, 'apply_coupon'])->name('coupon.apply');
     Route::post('coupon/remove', [CustomerController::class, 'remove_coupon'])->name('coupon.remove');
     Route::post('abandoned-cart/contact', [CustomerController::class, 'capture_abandoned_cart_contact'])->name('abandoned-cart.contact');
@@ -83,21 +83,21 @@ Route::group(['namespace'=>'Frontend', 'middleware' => ['ipcheck','check_refer']
 
 Route::group(['prefix'=>'customer','namespace'=>'Frontend', 'middleware' => ['ipcheck','check_refer']], function() {
     Route::get('/login', [CustomerController::class, 'login'])->name('customer.login');
-    Route::post('/signin', [CustomerController::class, 'signin'])->name('customer.signin');
+    Route::post('/signin', [CustomerController::class, 'signin'])->middleware('throttle:5,1')->name('customer.signin');
     Route::get('/register', [CustomerController::class, 'register'])->name('customer.register');
-    Route::post('/store', [CustomerController::class, 'store'])->name('customer.store');
+    Route::post('/store', [CustomerController::class, 'store'])->middleware('throttle:3,10')->name('customer.store');
     Route::get('/verify', [CustomerController::class, 'verify'])->name('customer.verify');
-    Route::post('/verify-account', [CustomerController::class, 'account_verify'])->name('customer.account.verify');
-    Route::post('/resend-otp', [CustomerController::class, 'resendotp'])->name('customer.resendotp');
+    Route::post('/verify-account', [CustomerController::class, 'account_verify'])->middleware('throttle:5,10')->name('customer.account.verify');
+    Route::post('/resend-otp', [CustomerController::class, 'resendotp'])->middleware('throttle:3,10')->name('customer.resendotp');
     Route::post('/logout', [CustomerController::class, 'logout'])->name('customer.logout');
     Route::post('/post/review', [CustomerController::class, 'review'])->name('customer.review');
     Route::get('/forgot-password', [CustomerController::class, 'forgot_password'])->name('customer.forgot.password');
-    Route::post('/forgot-verify', [CustomerController::class, 'forgot_verify'])->name('customer.forgot.verify');
+    Route::post('/forgot-verify', [CustomerController::class, 'forgot_verify'])->middleware('throttle:5,10')->name('customer.forgot.verify');
     Route::get('/forgot-password/reset', [CustomerController::class, 'forgot_reset'])->name('customer.forgot.reset');
-    Route::post('/forgot-password/store', [CustomerController::class, 'forgot_store'])->name('customer.forgot.store');
-    Route::post('/forgot-password/resendotp', [CustomerController::class, 'forgot_resend'])->name('customer.forgot.resendotp');
+    Route::post('/forgot-password/store', [CustomerController::class, 'forgot_store'])->middleware('throttle:5,10')->name('customer.forgot.store');
+    Route::post('/forgot-password/resendotp', [CustomerController::class, 'forgot_resend'])->middleware('throttle:3,10')->name('customer.forgot.resendotp');
     Route::get('/checkout', [CustomerController::class, 'checkout'])->name('customer.checkout');
-    Route::post('/', [CustomerController::class, 'order_save'])->name('customer.ordersave');
+    Route::post('/', [CustomerController::class, 'order_save'])->middleware('throttle:5,10')->name('customer.ordersave');
     Route::get('/order-success/{id}', [CustomerController::class, 'order_success'])->name('customer.order_success');
 
    Route::get('/order-track', [CustomerController::class, 'order_track'])->name('customer.order_track');
