@@ -14,6 +14,11 @@ use App\Models\EcomPixel;
 use App\Models\GoogleTagManager;
 use App\Models\Order;
 use App\Models\PaymentGateway;
+use App\Models\Product;
+use App\Models\Banner;
+use App\Models\Subcategory;
+use App\Models\Childcategory;
+use App\Services\StorefrontCache;
 use Config;
 use Session;
 use Illuminate\Support\Facades\Cache;
@@ -37,6 +42,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        // Keep short-lived storefront caches fresh immediately after merchandising changes.
+        foreach ([Product::class, Category::class, Subcategory::class, Childcategory::class, Banner::class, Brand::class, GeneralSetting::class, SocialMedia::class, Contact::class, CreatePage::class] as $model) {
+            $model::saved(fn () => StorefrontCache::forget());
+            $model::deleted(fn () => StorefrontCache::forget());
+        }
+
        $shurjopay = PaymentGateway::where(['status' => 1, 'type' => 'shurjopay'])->first();
         if ($shurjopay) {
             

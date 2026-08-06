@@ -9,7 +9,7 @@
 <div class="container-fluid">
     <div class="dash-hero d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
         <div><h4>আজকের ব্যবসার অবস্থা</h4><p>Order, revenue এবং pending কাজগুলো এক জায়গা থেকে দেখুন।</p></div>
-        <div class="d-flex gap-2"><a href="{{ route('admin.order.create') }}" class="btn btn-light text-success fw-semibold"><i class="fe-plus-circle me-1"></i>নতুন POS order</a><a href="{{ route('admin.orders', ['slug' => 'pending']) }}" class="btn btn-outline-light">Pending orders</a></div>
+        <div class="d-flex gap-2 flex-wrap"><a href="{{ route('admin.order.create') }}" class="btn btn-light text-success fw-semibold"><i class="fe-plus-circle me-1"></i>নতুন POS order</a><a href="{{ route('admin.orders', ['slug' => 'pending']) }}" class="btn btn-outline-light">Pending orders</a><form method="POST" action="{{ route('cache.storefront.clear') }}">@csrf<button class="btn btn-outline-light" onclick="return confirm('Clear storefront cache?')"><i class="fe-refresh-cw me-1"></i>Refresh storefront</button></form></div>
     </div>
 
     <div class="row g-3 mb-4">

@@ -38,6 +38,7 @@ use App\Http\Controllers\Admin\AbandonedCartController;
 use App\Http\Controllers\Admin\ReturnRequestController;
 use App\Http\Controllers\Admin\CustomerTagController;
 use App\Http\Controllers\Admin\ProductAnalyticsController;
+use App\Http\Controllers\Admin\CacheController;
 
 Auth::routes();
 
@@ -146,6 +147,7 @@ Route::get('/ajax-product-childcategory', [ProductController::class, 'getChildca
 // auth route
 Route::group(['namespace'=>'Admin','middleware' => ['auth','lock','check_refer'],'prefix'=>'admin'], function() {
     Route::get('dashboard', [DashboardController::class, 'dashboard'])->name('dashboard');
+    Route::post('cache/storefront/clear', [CacheController::class, 'clearStorefront'])->name('cache.storefront.clear');
     Route::get('change-password', [DashboardController::class, 'changepassword'])->name('change_password');
     Route::post('new-password', [DashboardController::class, 'newpassword'])->name('new_password');
 
