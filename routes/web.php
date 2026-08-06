@@ -324,6 +324,7 @@ Route::group(['namespace'=>'Admin','middleware' => ['auth','lock','check_refer']
 
     // checkout recovery operations
     Route::get('abandoned-carts', [AbandonedCartController::class, 'index'])->name('abandoned-carts.index');
+    Route::post('abandoned-carts/{abandonedCart}/reminder', [AbandonedCartController::class, 'sendReminder'])->name('abandoned-carts.reminder');
     Route::post('abandoned-carts/{abandonedCart}/ignore', [AbandonedCartController::class, 'ignore'])->name('abandoned-carts.ignore');
    
     // settings route 
