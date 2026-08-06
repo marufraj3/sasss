@@ -65,7 +65,19 @@ class FrontendController extends Controller
             ];
         });
 
-        return view('frontEnd.layouts.pages.index', $homePage);
+        $recentIds = array_values(array_filter(Session::get('recently_viewed_products', [])));
+        $recentProducts = collect();
+        if ($recentIds) {
+            $loadedProducts = Product::where('status', 1)
+                ->where('stock', '>', 0)
+                ->whereIn('id', $recentIds)
+                ->with(['image', 'prosizes', 'procolors'])
+                ->get()
+                ->keyBy('id');
+            $recentProducts = collect($recentIds)->map(fn ($id) => $loadedProducts->get($id))->filter()->take(8)->values();
+        }
+
+        return view('frontEnd.layouts.pages.index', array_merge($homePage, compact('recentProducts')));
     }
 
     public function hotdeals()
@@ -218,6 +230,8 @@ class FrontendController extends Controller
             ->with(['image', 'images', 'category', 'subcategory', 'childcategory', 'brand'])
             ->withCount('reviews')
             ->firstOrFail();
+        $this->rememberRecentlyViewedProduct($details->id);
+
         $products = Product::where(['category_id' => $details->category_id, 'status' => 1])
             ->where('id', '!=', $details->id)
             ->where('stock', '>', 0)
@@ -409,6 +423,14 @@ class FrontendController extends Controller
                 return redirect()->route('home');
             }
         }
+    }
+
+    /** Keep a small anonymous browsing history to make returning to products effortless. */
+    private function rememberRecentlyViewedProduct(int $productId): void
+    {
+        $history = array_values(array_filter(Session::get('recently_viewed_products', []), fn ($id) => (int) $id !== $productId));
+        array_unshift($history, $productId);
+        Session::put('recently_viewed_products', array_slice($history, 0, 12));
     }
 
     public function offers()
