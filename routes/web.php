@@ -104,6 +104,9 @@ Route::group(['prefix'=>'customer','namespace'=>'Frontend','middleware' => ['cus
     Route::get('/account', [CustomerController::class, 'account'])->name('customer.account');
     
     Route::get('/orders', [CustomerController::class, 'orders'])->name('customer.orders');
+    Route::get('/wishlist', [CustomerController::class, 'wishlists'])->name('customer.wishlist');
+    Route::post('/wishlist', [CustomerController::class, 'wishlist_store'])->name('customer.wishlist.store');
+    Route::delete('/wishlist/{wishlist}', [CustomerController::class, 'wishlist_destroy'])->name('customer.wishlist.destroy');
     Route::get('/invoice', [CustomerController::class, 'invoice'])->name('customer.invoice');
     Route::get('/invoice/order-note', [CustomerController::class, 'order_note'])->name('customer.order_note');
     Route::get('/profile-edit', [CustomerController::class, 'profile_edit'])->name('customer.profile_edit');

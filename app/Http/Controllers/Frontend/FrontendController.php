@@ -26,6 +26,7 @@ use Session;
 use Cart;
 use Auth;
 use Illuminate\Support\Facades\Cache;
+use App\Models\Wishlist;
 
 class FrontendController extends Controller
 {
@@ -234,8 +235,10 @@ class FrontendController extends Controller
         $productsizes = Productsize::where('product_id', $details->id)
             ->with('size')
             ->get();
+        $isWishlisted = Auth::guard('customer')->check()
+            && Wishlist::where(['customer_id' => Auth::guard('customer')->id(), 'product_id' => $details->id])->exists();
 
-        return view('frontEnd.layouts.pages.details', compact('details', 'products', 'shippingcharge', 'productcolors', 'productsizes', 'reviews'));
+        return view('frontEnd.layouts.pages.details', compact('details', 'products', 'shippingcharge', 'productcolors', 'productsizes', 'reviews', 'isWishlisted'));
     }
     public function quickview(Request $request)
     {

@@ -21,6 +21,7 @@ use App\Models\GeneralSetting;
 use App\Models\Product;
 use App\Models\OrderStatus;
 use App\Models\Coupon;
+use App\Models\Wishlist;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Session;
@@ -249,6 +250,33 @@ class CustomerController extends Controller
     public function account(){
         return view('frontEnd.layouts.customer.account');
     }
+
+    public function wishlists()
+    {
+        $wishlists = Wishlist::where('customer_id', Auth::guard('customer')->id())
+            ->with(['product.image'])
+            ->latest()
+            ->paginate(20);
+
+        return view('frontEnd.layouts.customer.wishlists', compact('wishlists'));
+    }
+
+    public function wishlist_store(Request $request)
+    {
+        $data = $request->validate(['product_id' => ['required', 'integer', 'exists:products,id']]);
+        $product = Product::where(['id' => $data['product_id'], 'status' => 1])->firstOrFail();
+        Wishlist::firstOrCreate(['customer_id' => Auth::guard('customer')->id(), 'product_id' => $product->id]);
+
+        return back()->with('success', 'পণ্যটি আপনার wishlist-এ যোগ করা হয়েছে।');
+    }
+
+    public function wishlist_destroy(Wishlist $wishlist)
+    {
+        abort_unless($wishlist->customer_id === Auth::guard('customer')->id(), 403);
+        $wishlist->delete();
+        return back()->with('success', 'পণ্যটি wishlist থেকে সরানো হয়েছে।');
+    }
+
     public function logout(Request $request){
         Auth::guard('customer')->logout();
         Toastr::success('You are logout successfully', 'success!');

@@ -111,6 +111,17 @@
                                                 <div><i class="fa fa-shield-alt"></i><br>নিরাপদ অর্ডার</div>
                                             </div>
                                             @if($details->stock > 0)<div class="stock-status"><i class="fa fa-circle-check"></i> স্টকে আছে — আজই অর্ডার করুন</div>@endif
+                                            <div class="mt-2">
+                                                @auth('customer')
+                                                    @if($isWishlisted)
+                                                        <a href="{{ route('customer.wishlist') }}" class="btn btn-sm btn-outline-danger"><i class="fa fa-heart"></i> Wishlist-এ আছে</a>
+                                                    @else
+                                                        <form action="{{ route('customer.wishlist.store') }}" method="POST" class="d-inline">@csrf<input type="hidden" name="product_id" value="{{ $details->id }}"><button class="btn btn-sm btn-outline-secondary" type="submit"><i class="fa fa-heart"></i> Wishlist-এ রাখুন</button></form>
+                                                    @endif
+                                                @else
+                                                    <a href="{{ route('customer.login') }}" class="btn btn-sm btn-outline-secondary"><i class="fa fa-heart"></i> Wishlist-এর জন্য লগইন করুন</a>
+                                                @endauth
+                                            </div>
 
                                             @if($details->note)
                                             <div class="">
