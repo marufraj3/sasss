@@ -21,6 +21,7 @@ use Session;
 use Cart;
 use Toastr;
 use Mail;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
