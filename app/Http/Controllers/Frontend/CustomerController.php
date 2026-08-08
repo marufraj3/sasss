@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Http\Controllers\Frontend;
-use shurjopayv2\ShurjopayLaravelPackage8\Http\Controllers\ShurjopayController;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -353,11 +352,8 @@ class CustomerController extends Controller
         Session::put('shipping', $previewShipping);
 
         $bkash_gateway = PaymentGateway::where(['status' => 1, 'type' => 'bkash'])->first();
-        $shurjopay_gateway = class_exists(ShurjopayController::class)
-            ? PaymentGateway::where(['status' => 1, 'type' => 'shurjopay'])->first()
-            : null;
 
-        return view('frontEnd.layouts.customer.checkout', compact('shippingcharge', 'shippingPromotion', 'bkash_gateway', 'shurjopay_gateway'));
+        return view('frontEnd.layouts.customer.checkout', compact('shippingcharge', 'shippingPromotion', 'bkash_gateway'));
     }
 
     public function order_save(Request $request)
@@ -370,9 +366,6 @@ class CustomerController extends Controller
         $paymentMethods = ['Cash On Delivery'];
         if (PaymentGateway::where(['status' => 1, 'type' => 'bkash'])->exists()) {
             $paymentMethods[] = 'bkash';
-        }
-        if (class_exists(ShurjopayController::class) && PaymentGateway::where(['status' => 1, 'type' => 'shurjopay'])->exists()) {
-            $paymentMethods[] = 'shurjopay';
         }
 
         $data = $request->validate([
@@ -489,17 +482,6 @@ class CustomerController extends Controller
 
         if ($data['payment_method'] === 'bkash') {
             return redirect('/bkash/checkout-url/create?order_id=' . $order->id);
-        }
-        if ($data['payment_method'] === 'shurjopay') {
-            $info = [
-                'currency' => 'BDT', 'amount' => $order->amount, 'order_id' => uniqid(),
-                'discsount_amount' => 0, 'disc_percent' => 0, 'client_ip' => $request->ip(),
-                'customer_name' => $data['name'], 'customer_phone' => $data['phone'],
-                'email' => 'customer@example.com', 'customer_address' => $data['address'],
-                'customer_city' => $shippingArea->name, 'customer_state' => $shippingArea->name,
-                'customer_postcode' => '1212', 'customer_country' => 'BD', 'value1' => $order->id,
-            ];
-            return (new ShurjopayController())->checkout($info);
         }
 
         return redirect()->route('customer.order_success', $order->id);

@@ -13,13 +13,11 @@ use App\Models\OrderStatus;
 use App\Models\EcomPixel;
 use App\Models\GoogleTagManager;
 use App\Models\Order;
-use App\Models\PaymentGateway;
 use App\Models\Product;
 use App\Models\Banner;
 use App\Models\Subcategory;
 use App\Models\Childcategory;
 use App\Services\StorefrontCache;
-use Config;
 use Session;
 use Illuminate\Support\Facades\Cache;
 
@@ -48,16 +46,6 @@ class AppServiceProvider extends ServiceProvider
             $model::deleted(fn () => StorefrontCache::forget());
         }
 
-       $shurjopay = PaymentGateway::where(['status' => 1, 'type' => 'shurjopay'])->first();
-        if ($shurjopay) {
-            
-            Config::set(['shurjopay.apiCredentials.username' => $shurjopay->username]);
-            Config::set(['shurjopay.apiCredentials.password' => $shurjopay->password]);
-            Config::set(['shurjopay.apiCredentials.prefix' => $shurjopay->prefix]);
-            Config::set(['shurjopay.apiCredentials.return_url' => $shurjopay->success_url]);
-            Config::set(['shurjopay.apiCredentials.cancel_url' => $shurjopay->return_url]);
-            Config::set(['shurjopay.apiCredentials.base_url' => $shurjopay->base_url]);
-        }
         // Shared storefront data previously caused multiple queries on every page load,
         // plus a menu N+1 query. A short cache keeps the shop responsive while allowing
         // content changes to appear quickly.

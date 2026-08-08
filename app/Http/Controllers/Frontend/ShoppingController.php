@@ -84,6 +84,12 @@ class ShoppingController extends Controller
         ]);
         app(ProductEventTracker::class)->record($product->id, 'add_to_cart');
     }
+    public function cart_show()
+    {
+        $data = Cart::instance('shopping')->content();
+        return view('frontEnd.layouts.pages.cart', compact('data'));
+    }
+
     public function cart_remove(Request $request)
     {
         $data = $request->validate(['id' => ['required', 'string']]);

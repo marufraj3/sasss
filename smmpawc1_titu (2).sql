@@ -2484,8 +2484,7 @@ CREATE TABLE `payment_gateways` (
 
 -- Payment credentials intentionally removed. Configure live credentials in Admin → Payment Gateway after deployment.
 INSERT INTO `payment_gateways` (`id`, `type`, `app_key`, `app_secret`, `username`, `password`, `base_url`, `success_url`, `return_url`, `prefix`, `status`, `created_at`, `updated_at`) VALUES
-(1, 'bkash', '', '', '', '', '', '', '', NULL, 0, NULL, NULL),
-(2, 'shurjopay', '', '', '', '', '', '', '', NULL, 0, NULL, NULL);
+(1, 'bkash', '', '', '', '', '', '', '', NULL, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
