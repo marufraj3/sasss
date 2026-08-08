@@ -19,8 +19,7 @@ class ApiIntegrationController extends Controller
     public function pay_manage ()
     {
         $bkash = PaymentGateway::where('type','=','bkash')->first();
-        $shurjopay = PaymentGateway::where('type','=','shurjopay')->first();
-        return view('backEnd.apiintegration.pay_manage',compact('bkash','shurjopay'));
+        return view('backEnd.apiintegration.pay_manage',compact('bkash'));
     }
     
     public function pay_update(Request $request)

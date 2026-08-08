@@ -25,4 +25,14 @@ class Customer extends Authenticatable
     {
         return $this->hasMany(Order::class,'customer_id');
     }
+
+    public function wishlists()
+    {
+        return $this->hasMany(Wishlist::class);
+    }
+
+    public function tags()
+    {
+        return $this->belongsToMany(CustomerTag::class, 'customer_customer_tag');
+    }
 }

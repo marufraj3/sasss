@@ -6,7 +6,6 @@ use App\Http\Controllers\Frontend\FrontendController;
 use App\Http\Controllers\Frontend\ShoppingController;
 use App\Http\Controllers\Frontend\CustomerController;
 use App\Http\Controllers\Frontend\BkashController;
-use App\Http\Controllers\Frontend\ShurjopayControllers;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\UserController;
@@ -33,21 +32,16 @@ use App\Http\Controllers\Admin\ShippingChargeController;
 use App\Http\Controllers\Admin\ColorController;
 use App\Http\Controllers\Admin\SizeController;
 use App\Http\Controllers\Admin\TagManagerController;
+use App\Http\Controllers\Admin\CouponController;
+use App\Http\Controllers\Admin\AbandonedCartController;
+use App\Http\Controllers\Admin\ReturnRequestController;
+use App\Http\Controllers\Admin\CustomerTagController;
+use App\Http\Controllers\Admin\ProductAnalyticsController;
+use App\Http\Controllers\Admin\CacheController;
+use App\Http\Controllers\Admin\ShippingPromotionController;
+use App\Http\Controllers\Admin\CourierShipmentController;
 
 Auth::routes();
-
-Route::get('/cc', function() {
-    Artisan::call('config:clear');
-    Artisan::call('cache:clear');
-    Artisan::call('route:clear');
-    Artisan::call('view:clear');
-    return "Cleared!";
-});
-
-Route::get('/controller', function() {
-    Artisan::call('make:controller Admin/TagManagerController');
-    return "Controller Done!";
-});
 
 Route::group(['namespace'=>'Frontend', 'middleware' => ['ipcheck','check_refer']], function() {
     Route::get('/', [FrontendController::class, 'index'])->name('home');
@@ -58,7 +52,7 @@ Route::group(['namespace'=>'Frontend', 'middleware' => ['ipcheck','check_refer']
     Route::get('products/{slug}', [FrontendController::class, 'products'])->name('products');
 
     Route::get('hot-deals', [FrontendController::class, 'hotdeals'])->name('hotdeals');
-    Route::get('livesearch', [FrontendController::class, 'livesearch'])->name('livesearch');
+    Route::get('livesearch', [FrontendController::class, 'livesearch'])->middleware('throttle:60,1')->name('livesearch');
     Route::get('search', [FrontendController::class, 'search'])->name('search');
     Route::get('product/{id}', [FrontendController::class, 'details'])->name('product');    
     Route::get('quick-view', [FrontendController::class, 'quickview'])->name('quickview');
@@ -68,41 +62,42 @@ Route::group(['namespace'=>'Frontend', 'middleware' => ['ipcheck','check_refer']
     Route::get('districts', [FrontendController::class, 'districts'])->name('districts');
     Route::get('/campaign/{slug}', [FrontendController::class, 'campaign'])->name('campaign');
     Route::get('/offer', [FrontendController::class, 'offers'])->name('offers');
-     Route::get('/payment-success', [FrontEndController::class, 'payment_success'])->name('payment_success');
-    Route::get('/payment-cancel', [FrontEndController::class, 'payment_cancel'])->name('payment_cancel');
-
-    // cart route
-    Route::post('cart/store', [ShoppingController::class, 'cart_store'])->name('cart.store');
+     // cart route
+    Route::post('cart/store', [ShoppingController::class, 'cart_store'])->middleware('throttle:20,1')->name('cart.store');
+    Route::post('campaign/cart', [ShoppingController::class, 'campaign_cart_store'])->middleware('throttle:20,1')->name('campaign.cart.store');
+    Route::post('coupon/apply', [CustomerController::class, 'apply_coupon'])->name('coupon.apply');
+    Route::post('coupon/remove', [CustomerController::class, 'remove_coupon'])->name('coupon.remove');
+    Route::post('abandoned-cart/contact', [CustomerController::class, 'capture_abandoned_cart_contact'])->name('abandoned-cart.contact');
 
     Route::get('/add-to-cart/{id}/{qty}', [ShoppingController::class, 'addTocartGet']);
 
     Route::get('shop/cart', [ShoppingController::class, 'cart_show'])->name('cart.show');
-    Route::get('cart/remove', [ShoppingController::class, 'cart_remove'])->name('cart.remove');
+    Route::post('cart/remove', [ShoppingController::class, 'cart_remove'])->name('cart.remove');
     Route::get('cart/count', [ShoppingController::class, 'cart_count'])->name('cart.count');
     Route::get('mobilecart/count', [ShoppingController::class, 'mobilecart_qty'])->name('mobile.cart.count');
-    Route::get('cart/decrement', [ShoppingController::class, 'cart_decrement'])->name('cart.decrement');
+    Route::post('cart/decrement', [ShoppingController::class, 'cart_decrement'])->name('cart.decrement');
 
-    Route::get('cart/increment', [ShoppingController::class, 'cart_increment'])->name('cart.increment');
+    Route::post('cart/increment', [ShoppingController::class, 'cart_increment'])->name('cart.increment');
 
 });
 
 Route::group(['prefix'=>'customer','namespace'=>'Frontend', 'middleware' => ['ipcheck','check_refer']], function() {
     Route::get('/login', [CustomerController::class, 'login'])->name('customer.login');
-    Route::post('/signin', [CustomerController::class, 'signin'])->name('customer.signin');
+    Route::post('/signin', [CustomerController::class, 'signin'])->middleware('throttle:5,1')->name('customer.signin');
     Route::get('/register', [CustomerController::class, 'register'])->name('customer.register');
-    Route::post('/store', [CustomerController::class, 'store'])->name('customer.store');
+    Route::post('/store', [CustomerController::class, 'store'])->middleware('throttle:3,10')->name('customer.store');
     Route::get('/verify', [CustomerController::class, 'verify'])->name('customer.verify');
-    Route::post('/verify-account', [CustomerController::class, 'account_verify'])->name('customer.account.verify');
-    Route::post('/resend-otp', [CustomerController::class, 'resendotp'])->name('customer.resendotp');
+    Route::post('/verify-account', [CustomerController::class, 'account_verify'])->middleware('throttle:5,10')->name('customer.account.verify');
+    Route::post('/resend-otp', [CustomerController::class, 'resendotp'])->middleware('throttle:3,10')->name('customer.resendotp');
     Route::post('/logout', [CustomerController::class, 'logout'])->name('customer.logout');
     Route::post('/post/review', [CustomerController::class, 'review'])->name('customer.review');
     Route::get('/forgot-password', [CustomerController::class, 'forgot_password'])->name('customer.forgot.password');
-    Route::post('/forgot-verify', [CustomerController::class, 'forgot_verify'])->name('customer.forgot.verify');
+    Route::post('/forgot-verify', [CustomerController::class, 'forgot_verify'])->middleware('throttle:5,10')->name('customer.forgot.verify');
     Route::get('/forgot-password/reset', [CustomerController::class, 'forgot_reset'])->name('customer.forgot.reset');
-    Route::post('/forgot-password/store', [CustomerController::class, 'forgot_store'])->name('customer.forgot.store');
-    Route::post('/forgot-password/resendotp', [CustomerController::class, 'forgot_resend'])->name('customer.forgot.resendotp');
+    Route::post('/forgot-password/store', [CustomerController::class, 'forgot_store'])->middleware('throttle:5,10')->name('customer.forgot.store');
+    Route::post('/forgot-password/resendotp', [CustomerController::class, 'forgot_resend'])->middleware('throttle:3,10')->name('customer.forgot.resendotp');
     Route::get('/checkout', [CustomerController::class, 'checkout'])->name('customer.checkout');
-    Route::post('/', [CustomerController::class, 'order_save'])->name('customer.ordersave');
+    Route::post('/', [CustomerController::class, 'order_save'])->middleware('throttle:5,10')->name('customer.ordersave');
     Route::get('/order-success/{id}', [CustomerController::class, 'order_success'])->name('customer.order_success');
 
    Route::get('/order-track', [CustomerController::class, 'order_track'])->name('customer.order_track');
@@ -116,6 +111,11 @@ Route::group(['prefix'=>'customer','namespace'=>'Frontend','middleware' => ['cus
     Route::get('/account', [CustomerController::class, 'account'])->name('customer.account');
     
     Route::get('/orders', [CustomerController::class, 'orders'])->name('customer.orders');
+    Route::get('/wishlist', [CustomerController::class, 'wishlists'])->name('customer.wishlist');
+    Route::post('/wishlist', [CustomerController::class, 'wishlist_store'])->name('customer.wishlist.store');
+    Route::delete('/wishlist/{wishlist}', [CustomerController::class, 'wishlist_destroy'])->name('customer.wishlist.destroy');
+    Route::get('/returns', [CustomerController::class, 'returns'])->name('customer.returns');
+    Route::post('/returns', [CustomerController::class, 'return_store'])->name('customer.returns.store');
     Route::get('/invoice', [CustomerController::class, 'invoice'])->name('customer.invoice');
     Route::get('/invoice/order-note', [CustomerController::class, 'order_note'])->name('customer.order_note');
     Route::get('/profile-edit', [CustomerController::class, 'profile_edit'])->name('customer.profile_edit');
@@ -127,11 +127,9 @@ Route::group(['prefix'=>'customer','namespace'=>'Frontend','middleware' => ['cus
 
 Route::group(['namespace'=>'Frontend', 'middleware' => ['ipcheck','check_refer']], function() {
     
-    Route::get('bkash/checkout-url/pay',[BkashController::class,'pay'])->name('url-pay');
-Route::any('bkash/checkout-url/create',[BkashController::class,'create'])->name('url-create');
+    Route::get('bkash/checkout-url/pay',[BkashController::class,'create'])->name('url-pay');
+Route::get('bkash/checkout-url/create',[BkashController::class,'create'])->name('url-create');
 Route::get('bkash/checkout-url/callback',[BkashController::class,'callback'])->name('url-callback');
-    Route::get('/payment-success', [ShurjopayControllers::class, 'payment_success'])->name('payment_success');
-    Route::get('/payment-cancel', [ShurjopayControllers::class, 'payment_cancel'])->name('payment_cancel');
 
 });
 
@@ -148,6 +146,7 @@ Route::get('/ajax-product-childcategory', [ProductController::class, 'getChildca
 // auth route
 Route::group(['namespace'=>'Admin','middleware' => ['auth','lock','check_refer'],'prefix'=>'admin'], function() {
     Route::get('dashboard', [DashboardController::class, 'dashboard'])->name('dashboard');
+    Route::post('cache/storefront/clear', [CacheController::class, 'clearStorefront'])->name('cache.storefront.clear');
     Route::get('change-password', [DashboardController::class, 'changepassword'])->name('change_password');
     Route::post('new-password', [DashboardController::class, 'newpassword'])->name('new_password');
 
@@ -223,6 +222,9 @@ Route::group(['namespace'=>'Admin','middleware' => ['auth','lock','check_refer']
     // courierapi
     Route::get('courierapi/manage', [ApiIntegrationController::class,'courier_manage'])->name('courierapi.manage');
     Route::post('courierapi/save', [ApiIntegrationController::class,'courier_update'])->name('courierapi.update');
+    Route::get('courier-shipments', [CourierShipmentController::class, 'index'])->name('courier-shipments.index');
+    Route::post('courier-shipments', [CourierShipmentController::class, 'store'])->name('courier-shipments.store');
+    Route::post('courier-shipments/{courierShipment}/status', [CourierShipmentController::class, 'updateStatus'])->name('courier-shipments.status');
 
     // attribute
     Route::get('orderstatus/manage', [OrderStatusController::class,'index'])->name('orderstatus.index');
@@ -319,7 +321,33 @@ Route::group(['namespace'=>'Admin','middleware' => ['auth','lock','check_refer']
     Route::post('campaign/inactive', [CampaignController::class,'inactive'])->name('campaign.inactive');
     Route::post('campaign/active', [CampaignController::class,'active'])->name('campaign.active');
     Route::post('campaign/destroy', [CampaignController::class,'destroy'])->name('campaign.destroy');
-    Route::get('campaign/image/destroy', [CampaignController::class,'imgdestroy'])->name('campaign.image.destroy');
+    Route::post('campaign/image/destroy', [CampaignController::class,'imgdestroy'])->name('campaign.image.destroy');
+
+    // coupons and promotion rules
+    Route::get('coupons', [CouponController::class, 'index'])->name('coupons.index');
+    Route::get('coupons/create', [CouponController::class, 'create'])->name('coupons.create');
+    Route::post('coupons', [CouponController::class, 'store'])->name('coupons.store');
+    Route::get('coupons/{coupon}/edit', [CouponController::class, 'edit'])->name('coupons.edit');
+    Route::put('coupons/{coupon}', [CouponController::class, 'update'])->name('coupons.update');
+    Route::delete('coupons/{coupon}', [CouponController::class, 'destroy'])->name('coupons.destroy');
+
+    // checkout recovery operations
+    Route::get('abandoned-carts', [AbandonedCartController::class, 'index'])->name('abandoned-carts.index');
+    Route::post('abandoned-carts/{abandonedCart}/reminder', [AbandonedCartController::class, 'sendReminder'])->name('abandoned-carts.reminder');
+    Route::post('abandoned-carts/{abandonedCart}/ignore', [AbandonedCartController::class, 'ignore'])->name('abandoned-carts.ignore');
+
+    // returns and refunds
+    Route::get('return-requests', [ReturnRequestController::class, 'index'])->name('return-requests.index');
+    Route::post('return-requests/{returnRequest}/approve', [ReturnRequestController::class, 'approve'])->name('return-requests.approve');
+    Route::post('return-requests/{returnRequest}/reject', [ReturnRequestController::class, 'reject'])->name('return-requests.reject');
+
+    // customer CRM tags
+    Route::get('customer-tags', [CustomerTagController::class, 'index'])->name('customer-tags.index');
+    Route::post('customer-tags', [CustomerTagController::class, 'store'])->name('customer-tags.store');
+    Route::delete('customer-tags/{customerTag}', [CustomerTagController::class, 'destroy'])->name('customer-tags.destroy');
+
+    // sales funnel reporting
+    Route::get('analytics/products', [ProductAnalyticsController::class, 'index'])->name('analytics.products');
    
     // settings route 
     Route::get('settings/manage', [GeneralSettingController::class,'index'])->name('settings.index');
@@ -390,9 +418,15 @@ Route::group(['namespace'=>'Admin','middleware' => ['auth','lock','check_refer']
     Route::get('order/cart-decrement', [OrderController::class,'cart_decrement'])->name('admin.order.cart_decrement');
     Route::get('order/cart-remove', [OrderController::class,'cart_remove'])->name('admin.order.cart_remove');
     Route::get('order/cart-product-discount', [OrderController::class,'product_discount'])->name('admin.order.product_discount');
+    Route::get('order/cart-discount', [OrderController::class,'cart_discount'])->name('admin.order.cart_discount');
+    Route::get('order/customer-lookup', [OrderController::class,'pos_customer'])->name('admin.pos.customer');
     Route::get('order/cart-details', [OrderController::class,'cart_details'])->name('admin.order.cart_details');
     Route::get('order/cart-shipping', [OrderController::class,'cart_shipping'])->name('admin.order.cart_shipping');
     Route::get('order/cart-clear', [OrderController::class,'cart_clear'])->name('admin.order.cart_clear');
+
+    // Order operations board
+    Route::get('orders/board', [OrderController::class, 'operations_board'])->name('admin.orders.board');
+    Route::post('orders/{order}/workflow', [OrderController::class, 'workflow_update'])->name('admin.orders.workflow');
 
     // Order route 
     Route::get('order/{slug}', [OrderController::class,'index'])->name('admin.orders');
@@ -433,6 +467,8 @@ Route::group(['namespace'=>'Admin','middleware' => ['auth','lock','check_refer']
     Route::post('shipping-charge/inactive', [ShippingChargeController::class,'inactive'])->name('shippingcharges.inactive');
     Route::post('shipping-charge/active', [ShippingChargeController::class,'active'])->name('shippingcharges.active');
     Route::post('shipping-charge/destroy', [ShippingChargeController::class,'destroy'])->name('shippingcharges.destroy');
+    Route::get('shipping-promotion', [ShippingPromotionController::class, 'edit'])->name('shipping-promotion.edit');
+    Route::post('shipping-promotion', [ShippingPromotionController::class, 'update'])->name('shipping-promotion.update');
     
     // backend customer route 
     Route::get('customer', [CustomerManageController::class,'index'])->name('customers.index');

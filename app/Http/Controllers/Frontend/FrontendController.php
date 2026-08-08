@@ -2,10 +2,8 @@
 
 namespace App\Http\Controllers\Frontend;
 
-use shurjopayv2\ShurjopayLaravelPackage8\Http\Controllers\ShurjopayController;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Brian2694\Toastr\Facades\Toastr;
 use App\Models\Category;
 use App\Models\Subcategory;
 use App\Models\Childcategory;
@@ -17,62 +15,65 @@ use App\Models\Banner;
 use App\Models\ShippingCharge;
 use App\Models\Productcolor;
 use App\Models\Productsize;
-use App\Models\Customer;
-use App\Models\OrderDetails;
-use App\Models\Payment;
-use App\Models\Order;
 use App\Models\Review;
 use Session;
 use Cart;
 use Auth;
+use Illuminate\Support\Facades\Cache;
+use App\Models\Wishlist;
+use App\Models\ShippingPromotion;
+use App\Services\ProductEventTracker;
 
 class FrontendController extends Controller
 {
     public function index()
     {
-        // return "Welcome to Kenakatar.com";
-        $frontcategory = Category::where(['status' => 1])
-            ->select('id', 'name', 'image', 'slug', 'status')
-            ->get();
+        // The home page is the most visited route. Cache the assembled sections briefly
+        // and load only the 12 products that are actually rendered per category.
+        $homePage = Cache::remember('storefront.home.v2', now()->addMinutes(5), function () {
+            $homeproducts = Category::where(['front_view' => 1, 'status' => 1])
+                ->select('id', 'name', 'slug')
+                ->orderBy('id')
+                ->get();
 
-        $sliders = Banner::where(['status' => 1, 'category_id' => 1])
-            ->select('id', 'image', 'link')
-            ->get();
+            $categoryIds = $homeproducts->pluck('id');
+            $productsByCategory = Product::where('status', 1)
+                ->where('stock', '>', 0)
+                ->whereIn('category_id', $categoryIds)
+                ->select('id', 'name', 'slug', 'new_price', 'old_price', 'category_id')
+                ->with(['image', 'prosizes', 'procolors'])
+                ->latest('id')
+                ->get()
+                ->groupBy('category_id');
 
-        $sliderbottomads = Banner::where(['status' => 1, 'category_id' => 5])
-            ->select('id', 'image', 'link')
-            ->limit(3)
-            ->get();
-
-        $footertopads = Banner::where(['status' => 1, 'category_id' => 6])
-            ->select('id', 'image', 'link')
-            ->limit(2)
-            ->get();
-
-        $hotdeal_top = Product::where(['status' => 1, 'topsale' => 1])
-            ->orderBy('id', 'DESC')
-            ->select('id', 'name', 'slug', 'new_price', 'old_price')
-            ->with('prosizes', 'procolors')
-            ->limit(12)
-            ->get();
-        // return $hotdeal_top;
-
-        $hotdeal_bottom = Product::where(['status' => 1, 'topsale' => 1])
-            ->select('id', 'name', 'slug', 'new_price', 'old_price')
-            ->skip(12)
-            ->limit(12)
-            ->get();
-
-        $homeproducts = Category::where(['front_view' => 1, 'status' => 1])
-            ->orderBy('id', 'ASC')
-            ->with(['products', 'products.image', 'products.prosize', 'products.procolor'])
-            ->get()
-            ->map(function ($query) {
-                $query->setRelation('products', $query->products->take(12));
-                return $query;
+            $homeproducts->each(function ($category) use ($productsByCategory) {
+                $category->setRelation('products', ($productsByCategory->get($category->id) ?? collect())->take(12)->values());
             });
-        // return $homeproducts;
-        return view('frontEnd.layouts.pages.index', compact('sliders', 'frontcategory', 'hotdeal_top', 'hotdeal_bottom', 'homeproducts', 'sliderbottomads', 'footertopads'));
+
+            return [
+                'frontcategory' => Category::where('status', 1)->select('id', 'name', 'image', 'slug')->get(),
+                'sliders' => Banner::where(['status' => 1, 'category_id' => 1])->select('id', 'image', 'link')->get(),
+                'sliderbottomads' => Banner::where(['status' => 1, 'category_id' => 5])->select('id', 'image', 'link')->limit(3)->get(),
+                'footertopads' => Banner::where(['status' => 1, 'category_id' => 6])->select('id', 'image', 'link')->limit(2)->get(),
+                'hotdeal_top' => Product::where(['status' => 1, 'topsale' => 1])->where('stock', '>', 0)->latest('id')->select('id', 'name', 'slug', 'new_price', 'old_price')->with(['image', 'prosizes', 'procolors'])->limit(12)->get(),
+                'hotdeal_bottom' => Product::where(['status' => 1, 'topsale' => 1])->latest('id')->select('id', 'name', 'slug', 'new_price', 'old_price')->skip(12)->limit(12)->get(),
+                'homeproducts' => $homeproducts,
+            ];
+        });
+
+        $recentIds = array_values(array_filter(Session::get('recently_viewed_products', [])));
+        $recentProducts = collect();
+        if ($recentIds) {
+            $loadedProducts = Product::where('status', 1)
+                ->where('stock', '>', 0)
+                ->whereIn('id', $recentIds)
+                ->with(['image', 'prosizes', 'procolors'])
+                ->get()
+                ->keyBy('id');
+            $recentProducts = collect($recentIds)->map(fn ($id) => $loadedProducts->get($id))->filter()->take(8)->values();
+        }
+
+        return view('frontEnd.layouts.pages.index', array_merge($homePage, compact('recentProducts')));
     }
 
     public function hotdeals()
@@ -222,14 +223,26 @@ class FrontendController extends Controller
     public function details($slug)
     {
         $details = Product::where(['slug' => $slug, 'status' => 1])
-            ->with('image', 'images', 'category', 'subcategory', 'childcategory')
+            ->with(['image', 'images', 'category', 'subcategory', 'childcategory', 'brand', 'recommendedProducts.image', 'recommendedProducts.prosizes', 'recommendedProducts.procolors'])
+            ->withCount('reviews')
             ->firstOrFail();
+        $this->rememberRecentlyViewedProduct($details->id);
+        app(ProductEventTracker::class)->recordProductView($details->id);
+        $recommendedProducts = $details->recommendedProducts
+            ->filter(fn ($product) => (int) $product->status === 1 && (int) $product->stock > 0)
+            ->take(4)
+            ->values();
+
         $products = Product::where(['category_id' => $details->category_id, 'status' => 1])
+            ->where('id', '!=', $details->id)
+            ->where('stock', '>', 0)
             ->with('image')
-            ->select('id', 'name', 'slug', 'new_price', 'old_price')
+            ->select('id', 'name', 'slug', 'new_price', 'old_price', 'category_id')
+            ->latest('id')
+            ->limit(12)
             ->get();
-        $shippingcharge = ShippingCharge::where('status', 1)->get();
-        $reviews = Review::where('product_id', $details->id)->get();
+        $shippingcharge = ShippingCharge::where('status', 1)->orderBy('amount')->get();
+        $reviews = Review::where('product_id', $details->id)->latest()->get();
         $productcolors = Productcolor::where('product_id', $details->id)
             ->with('color')
             ->get();
@@ -237,8 +250,10 @@ class FrontendController extends Controller
         $productsizes = Productsize::where('product_id', $details->id)
             ->with('size')
             ->get();
+        $isWishlisted = Auth::guard('customer')->check()
+            && Wishlist::where(['customer_id' => Auth::guard('customer')->id(), 'product_id' => $details->id])->exists();
 
-        return view('frontEnd.layouts.pages.details', compact('details', 'products', 'shippingcharge', 'productcolors', 'productsizes', 'reviews'));
+        return view('frontEnd.layouts.pages.details', compact('details', 'products', 'recommendedProducts', 'shippingcharge', 'productcolors', 'productsizes', 'reviews', 'isWishlisted'));
     }
     public function quickview(Request $request)
     {
@@ -250,21 +265,24 @@ class FrontendController extends Controller
     }
     public function livesearch(Request $request)
     {
-        $products = Product::select('id', 'name', 'slug', 'new_price', 'old_price')
-            ->where('status', 1)
-            ->with('image');
-        if ($request->keyword) {
-            $products = $products->where('name', 'LIKE', '%' . $request->keyword . "%");
+        $keyword = trim((string) $request->get('keyword'));
+        if (mb_strlen($keyword) < 2) {
+            return response()->view('frontEnd.layouts.ajax.search', ['products' => collect(), 'searched' => false]);
         }
-        if ($request->category) {
-            $products = $products->where('category_id', $request->category);
-        }
-        $products = $products->get();
 
-        if (empty($request->category) && empty($request->keyword)) {
-            $products = [];
-        }
-        return view('frontEnd.layouts.ajax.search', compact('products'));
+        $products = Product::select('id', 'name', 'slug', 'new_price', 'old_price', 'product_code')
+            ->where('status', 1)
+            ->where('stock', '>', 0)
+            ->when($request->category, fn ($query, $category) => $query->where('category_id', $category))
+            ->where(function ($query) use ($keyword) {
+                $query->where('name', 'LIKE', '%' . $keyword . '%')
+                    ->orWhere('product_code', 'LIKE', '%' . $keyword . '%');
+            })
+            ->with('image')
+            ->limit(8)
+            ->get();
+
+        return view('frontEnd.layouts.ajax.search', ['products' => $products, 'searched' => true]);
     }
     public function search(Request $request)
     {
@@ -284,9 +302,12 @@ class FrontendController extends Controller
 
     public function shipping_charge(Request $request)
     {
+        $data = $request->validate(['id' => ['required', 'integer']]);
+        $shipping = ShippingCharge::where(['id' => $data['id'], 'status' => 1])->firstOrFail();
+        $subtotal = (int) round(Cart::instance('shopping')->content()->sum(fn ($item) => $item->price * $item->qty));
+        $promotion = ShippingPromotion::where('status', 1)->first();
+        Session::put('shipping', $promotion && $subtotal >= $promotion->minimum_order ? 0 : (int) $shipping->amount);
 
-        $shipping = ShippingCharge::where(['id' => $request->id])->first();
-        Session::put('shipping', $shipping->amount);
         return view('frontEnd.layouts.ajax.cart');
     }
 
@@ -306,135 +327,43 @@ class FrontendController extends Controller
         $areas = District::where(['district' => $request->id])->pluck('area_name', 'id');
         return response()->json($areas);
     }
-  public function campaign($slug)
-{
-    // ক্যাম্পেইন ডাটা খুঁজুন
-    $campaign_data = Campaign::where('slug', $slug)->with('images')->first();
-
-    if (!$campaign_data) {
-        abort(404, 'Campaign not found');
-    }
-
-    // প্রোডাক্ট খুঁজুন
-    $product = Product::where('id', $campaign_data->product_id)
-        ->where('status', 1)
-        ->with('image')
-        ->first();
-
-    if (!$product) {
-        abort(404, 'Product not found');
-    }
-
-    // পুরোনো কার্ট খালি করুন
-    Cart::instance('shopping')->destroy();
-
-    // নতুন প্রোডাক্ট কার্টে যোগ করুন
-    $cart_count = Cart::instance('shopping')->count();
-    if ($cart_count == 0) {
-        Cart::instance('shopping')->add([
-            'id' => $product->id,
-            'name' => $product->name,
-            'qty' => 1,
-            'price' => $product->new_price,
-            'options' => [
-                'slug' => $product->slug,
-                'image' => $product->image->image ?? null,
-                'old_price' => $product->old_price,
-                'purchase_price' => $product->purchase_price,
-            ],
-        ]);
-    }
-
-    // শিপিং চার্জ
-    $shippingcharge = ShippingCharge::where('status', 1)->get();
-    $select_charge = ShippingCharge::where('status', 1)->first();
-
-    if ($select_charge) {
-        Session::put('shipping', $select_charge->amount);
-    } else {
-        Session::forget('shipping'); // fallback
-    }
-
-    return view(
-        'frontEnd.layouts.pages.campaign.campaign',
-        compact('campaign_data', 'product', 'shippingcharge')
-    );
-}
-
-
-    public function payment_success(Request $request)
+    public function campaign($slug)
     {
-        $order_id = $request->order_id;
-        $shurjopay_service = new ShurjopayController();
-        $json = $shurjopay_service->verify($order_id);
-        $data = json_decode($json);
+        $campaign_data = Campaign::where(['slug' => $slug, 'status' => 1])
+            ->where(function ($query) { $query->whereNull('starts_at')->orWhere('starts_at', '<=', now()); })
+            ->where(function ($query) { $query->whereNull('ends_at')->orWhere('ends_at', '>=', now()); })
+            ->with(['images', 'products.image'])
+            ->firstOrFail();
 
-        if ($data[0]->sp_code != 1000) {
-            Toastr::error('Your payment failed, try again', 'Oops!');
-            if ($data[0]->value1 == 'customer_payment') {
-                return redirect()->route('home');
-            } else {
-                return redirect()->route('home');
+        // Older landing pages have one product in campaigns.product_id. New pages can
+        // feature multiple products through the campaigns_products pivot table.
+        $products = $campaign_data->products
+            ->filter(fn ($product) => (int) $product->status === 1 && (int) $product->stock > 0)
+            ->values();
+
+        if ($products->isEmpty() && $campaign_data->product_id) {
+            $legacyProduct = Product::where(['id' => $campaign_data->product_id, 'status' => 1])
+                ->with('image')
+                ->first();
+            if ($legacyProduct) {
+                $products->push($legacyProduct);
             }
         }
 
-        if ($data[0]->value1 == 'customer_payment') {
+        abort_if($products->isEmpty(), 404, 'No available products in this campaign.');
 
-            $customer = Customer::find(Auth::guard('customer')->user()->id);
+        $shippingcharge = ShippingCharge::where('status', 1)->orderBy('amount')->get();
 
-            // order data save
-            $order = new Order();
-            $order->invoice_id = $data[0]->id;
-            $order->amount = $data[0]->amount;
-            $order->customer_id = Auth::guard('customer')->user()->id;
-            $order->order_status = $data[0]->bank_status;
-            $order->save();
-
-            // payment data save
-            $payment = new Payment();
-            $payment->order_id = $order->id;
-            $payment->customer_id = Auth::guard('customer')->user()->id;
-            $payment->payment_method = 'shurjopay';
-            $payment->amount = $order->amount;
-            $payment->trx_id = $data[0]->bank_trx_id;
-            $payment->sender_number = $data[0]->phone_no;
-            $payment->payment_status = 'paid';
-            $payment->save();
-            // order details data save
-            foreach (Cart::instance('shopping')->content() as $cart) {
-                $order_details = new OrderDetails();
-                $order_details->order_id = $order->id;
-                $order_details->product_id = $cart->id;
-                $order_details->product_name = $cart->name;
-                $order_details->purchase_price = $cart->options->purchase_price;
-                $order_details->sale_price = $cart->price;
-                $order_details->qty = $cart->qty;
-                $order_details->save();
-            }
-
-            Cart::instance('shopping')->destroy();
-            Toastr::error('Thanks, Your payment send successfully', 'Success!');
-            return redirect()->route('home');
-        }
-
-        Toastr::error('Something wrong, please try agian', 'Error!');
-        return redirect()->route('home');
+        return view('frontEnd.layouts.pages.campaign.campaign', compact('campaign_data', 'products', 'shippingcharge'));
     }
-    public function payment_cancel(Request $request)
-    {
-        $order_id = $request->order_id;
-        $shurjopay_service = new ShurjopayController();
-        $json = $shurjopay_service->verify($order_id);
-        $data = json_decode($json);
 
-        Toastr::error('Your payment cancelled', 'Cancelled!');
-        if ($data[0]->sp_code != 1000) {
-            if ($data[0]->value1 == 'customer_payment') {
-                return redirect()->route('home');
-            } else {
-                return redirect()->route('home');
-            }
-        }
+
+    /** Keep a small anonymous browsing history to make returning to products effortless. */
+    private function rememberRecentlyViewedProduct(int $productId): void
+    {
+        $history = array_values(array_filter(Session::get('recently_viewed_products', []), fn ($id) => (int) $id !== $productId));
+        array_unshift($history, $productId);
+        Session::put('recently_viewed_products', array_slice($history, 0, 12));
     }
 
     public function offers()

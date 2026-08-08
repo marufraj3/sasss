@@ -35,12 +35,9 @@
                                 </td>
                             </tr>
                             <tr>
-                                @php 
-                                    $payments = App\Models\Payment::where('order_id',$order->id)->first();
-                                @endphp
                                 <td colspan="4">
                                     <p>Payment Method</p>
-                                    <p><strong>{{$payments->payment_method}}</strong></p>
+                                    <p><strong>{{ optional($order->payment)->payment_method }}</strong></p>
                                 </td>
                             </tr>
                         </tbody>
@@ -109,4 +106,29 @@
 @push('script')
 <script src="{{asset('public/frontEnd/')}}/js/parsley.min.js"></script>
 <script src="{{asset('public/frontEnd/')}}/js/form-validation.init.js"></script>
+@php
+    $purchaseItems = $order->orderdetails->map(function ($detail) {
+        return [
+            'item_id' => (string) $detail->product_id,
+            'item_name' => $detail->product_name,
+            'price' => (float) $detail->sale_price,
+            'quantity' => (int) $detail->qty,
+            'currency' => 'BDT',
+        ];
+    })->values();
+@endphp
+<script>
+(function () {
+    const transactionId = @json((string) $order->invoice_id);
+    if (sessionStorage.getItem('purchase-tracked-' + transactionId)) return;
+    const items = @json($purchaseItems);
+    window.dataLayer = window.dataLayer || [];
+    dataLayer.push({ ecommerce: null });
+    dataLayer.push({ event: 'purchase', ecommerce: { transaction_id: transactionId, value: {{ (float) $order->amount }}, shipping: {{ (float) $order->shipping_charge }}, currency: 'BDT', items: items } });
+    if (typeof window.fbq === 'function') {
+        fbq('track', 'Purchase', { content_ids: items.map(item => item.item_id), content_type: 'product', value: {{ (float) $order->amount }}, currency: 'BDT' });
+    }
+    sessionStorage.setItem('purchase-tracked-' + transactionId, '1');
+})();
+</script>
 @endpush

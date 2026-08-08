@@ -30,6 +30,8 @@
                     alt="profile-image">
 
                     <h4 class="mb-0">{{$profile->name}}</h4>
+                    <div class="my-2">@foreach($profile->tags as $tag)<span class="badge" style="background:{{ $tag->color }}">{{ $tag->name }}</span> @endforeach</div>
+                    <p class="text-muted mb-2">{{ $profile->orders->count() }} orders · ৳{{ number_format($profile->orders->sum('amount')) }} lifetime value</p>
 
                     <a href="tel:{{$profile->phone}}" class="btn btn-success btn-xs waves-effect mb-2 waves-light">Call</a>
                     <a href="mailto:{{$profile->email}}" class="btn btn-danger btn-xs waves-effect mb-2 waves-light">Email</a>

@@ -1,330 +1,55 @@
 @extends('frontEnd.layouts.master')
-@section('title', $category->meta_title)
+@section('title',$category->name)
+@section('breadcrumb'){{ $category->name }}@endsection
 @push('css')
-    <link rel="stylesheet" href="{{ asset('public/frontEnd/css/jquery-ui.css') }}" />
-@endpush
-@push('seo')
-    <meta name="app-url" content="{{ route('category', $category->slug) }}" />
-    <meta name="robots" content="index, follow" />
-    <meta name="description" content="{{ $category->meta_description }}" />
-    <meta name="keywords" content="{{ $category->slug }}" />
-
-    <!-- Twitter Card data -->
-    <meta name="twitter:card" content="product" />
-    <meta name="twitter:site" content="{{ $category->name }}" />
-    <meta name="twitter:title" content="{{ $category->name }}" />
-    <meta name="twitter:description" content="{{ $category->meta_description }}" />
-    <meta name="twitter:creator" content="gomobd.com" />
-    <meta property="og:url" content="{{ route('category', $category->slug) }}" />
-    <meta name="twitter:image" content="{{ asset($category->image) }}" />
-
-    <!-- Open Graph data -->
-    <meta property="og:title" content="{{ $category->name }}" />
-    <meta property="og:type" content="product" />
-    <meta property="og:url" content="{{ route('category', $category->slug) }}" />
-    <meta property="og:image" content="{{ asset($category->image) }}" />
-    <meta property="og:description" content="{{ $category->meta_description }}" />
-    <meta property="og:site_name" content="{{ $category->name }}" />
+<style>
+.listing-wrap{padding:26px 0 50px}
+.listing-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:18px;gap:12px;flex-wrap:wrap}
+.listing-head h1{font-size:24px;font-weight:850;margin:0;color:var(--ink)}
+.listing-head .count{font-size:12.5px;color:var(--muted)}
+.head-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.filter-mobile{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--green);color:var(--green-dark);background:#fff;padding:9px 14px;font-size:12.5px;font-weight:800;border-radius:10px;cursor:pointer}
+.filter-mobile:hover{background:var(--green-soft)}
+.listing-sort{border:1.5px solid var(--line);padding:9px 12px;font-size:12.5px;font-weight:700;border-radius:10px;background:#fff;color:var(--ink);outline:0}
+.listing-sort:focus{border-color:var(--green)}
+.listing-layout{display:grid;grid-template-columns:248px 1fr;gap:24px;align-items:start}
+.filter-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;position:sticky;top:86px}
+.filter-block{border-bottom:1px solid var(--line);padding:12px 0}
+.filter-block:last-of-type{border:0}
+.filter-block h6{font-weight:850;font-size:12.5px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.03em;color:var(--green-deep)}
+.filter-block a{display:block;font-size:13px;padding:6px 0;color:#475569;transition:.12s}
+.filter-block a:hover{color:var(--green-dark);font-weight:700}
+.filter-block a.on{color:var(--green-dark);font-weight:800}
+.filter-links{max-height:220px;overflow:auto;padding-right:4px}
+.listing-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.pager{display:flex;justify-content:center;margin-top:30px}
+.pager .pagination{gap:6px}
+.pager .page-link{border:1.5px solid var(--line);border-radius:9px!important;color:var(--green-dark);font-weight:700;padding:8px 14px}
+.pager .page-item.active .page-link{background:var(--green);border-color:var(--green);color:#fff}
+.empty-state{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:50px 20px;text-align:center;color:var(--muted)}
+@media(max-width:991px){.listing-layout{grid-template-columns:1fr}.filter-card{position:static;display:none}.filter-card.open{display:block}.listing-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:767px){.listing-wrap{padding:16px 0 40px}.listing-head h1{font-size:19px}.listing-grid{grid-template-columns:repeat(2,1fr);gap:9px}.head-tools{width:100%}.filter-mobile{flex:1;justify-content:center}.listing-sort{flex:1}}
+</style>
 @endpush
 @section('content')
-    <section class="product-section">
-        <div class="container">
-            <div class="sorting-section">
-                <div class="row">
-                    <div class="col-sm-6">
-                        <div class="category-breadcrumb d-flex align-items-center">
-                            <a href="{{ route('home') }}">Home</a>
-                            <span>/</span>
-                            <strong>{{ $category->name }}</strong>
-                        </div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="row">
-                            <div class="col-sm-6">
-                                <div class="showing-data">
-                                    <span>Showing {{ $products->firstItem() }}-{{ $products->lastItem() }} of
-                                        {{ $products->total() }} Results</span>
-                                </div>
-                            </div>
-                            <div class="col-sm-6">
-                                <div class="filter_sort">
-                                    <div class="filter_btn">
-                                        <i class="fa fa-list-ul"></i>
-                                    </div>
-                                    <div class="page-sort">
-                                        <form action="" class="sort-form">
-                                            <select name="sort" class="form-control form-select sort">
-                                                <option value="1" @if(request()->get('sort')==1)selected @endif>Product: Latest</option>
-                                                <option value="2" @if(request()->get('sort')==2)selected @endif>Product: Oldest</option>
-                                                <option value="3" @if(request()->get('sort')==3)selected @endif>Price: High To Low</option>
-                                                <option value="4" @if(request()->get('sort')==4)selected @endif>Price: Low To High</option>
-                                                <option value="5" @if(request()->get('sort')==5)selected @endif>Name: A-Z</option>
-                                                <option value="6" @if(request()->get('sort')==6)selected @endif>Name: Z-A</option>
-                                            </select>
-                                            <input type="hidden" name="min_price" value="{{request()->get('min_price')}}" />
-                                            <input type="hidden" name="max_price" value="{{request()->get('max_price')}}" />
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row">
-
-                <div class="col-sm-3 filter_sidebar">
-                    <div class="filter_close"><i class="fa fa-long-arrow-left"></i> Filter</div>
-                    <form action="" class="attribute-submit">
-                        <div class="sidebar_item wraper__item">
-                            <div class="accordion" id="category_sidebar">
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                                            data-bs-target="#collapseCat" aria-expanded="true" aria-controls="collapseOne">
-                                            {{ $category->name }}
-                                        </button>
-                                    </h2>
-                                    <div id="collapseCat" class="accordion-collapse collapse show"
-                                        data-bs-parent="#category_sidebar">
-                                        <div class="accordion-body cust_according_body">
-                                            <ul>
-                                                @foreach ($category->subcategories as $key => $subcat)
-                                                    <li>
-                                                        <a
-                                                            href="{{ url('subcategory/' . $subcat->slug) }}">{{ $subcat->subcategoryName }}</a>
-                                                    </li>
-                                                @endforeach
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!--sidebar item end-->
-                        <div class="sidebar_item wraper__item">
-                            <div class="accordion" id="price_sidebar">
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                                            data-bs-target="#collapsePrice" aria-expanded="true" aria-controls="collapseOne">
-                                            Price
-                                        </button>
-                                    </h2>
-                                    <div id="collapsePrice" class="accordion-collapse collapse show"
-                                        data-bs-parent="#price_sidebar">
-                                        <div class="accordion-body cust_according_body">
-                                            <div class="category-filter-box category__wraper" id="categoryFilterBox">
-                                                <div class="category-filter-item">
-                                                    <div class="filter-body">
-                                                        <div class="slider-box">
-                                                            <div class="filter-price-inputs">
-                                                                <p class="min-price">৳<input type="text"
-                                                                        name="min_price" id="min_price" readonly="" />
-                                                                </p>
-                                                                <p class="max-price">৳<input type="text"
-                                                                        name="max_price" id="max_price" readonly="" />
-                                                                </p>
-                                                            </div>
-                                                            <div id="price-range" class="slider form-attribute"></div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!--sidebar item end-->
-                        <div class="sidebar_item wraper__item">
-                            <div class="accordion" id="filter_sidebar">
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                                            data-bs-target="#collapseFilter" aria-expanded="true"
-                                            aria-controls="collapseOne">
-                                            Filter
-                                        </button>
-                                    </h2>
-                                    <div id="collapseFilter" class="accordion-collapse collapse show"
-                                        data-bs-parent="#filter_sidebar">
-                                        <div class="accordion-body cust_according_body">
-                                            <div class="filter-body">
-                                                <ul class="space-y-3">
-                                                    @foreach ($subcategories as $subcategory)
-                                                        <li class="subcategory-filter-list">
-                                                            <label for="{{ $subcategory->slug . '-' . $subcategory->id }}"
-                                                                class="subcategory-filter-label">
-                                                                <input class="form-checkbox form-attribute"
-                                                                    id="{{ $subcategory->slug . '-' . $subcategory->id }}"
-                                                                    name="subcategory[]" value="{{ $subcategory->id }}"
-                                                                    type="checkbox"
-                                                                    @if (is_array(request()->get('subcategory')) && in_array($subcategory->id, request()->get('subcategory'))) checked @endif />
-                                                                <p class="subcategory-filter-name">
-                                                                    {{ $subcategory->subcategoryName }}</p>
-                                                            </label>
-                                                        </li>
-                                                    @endforeach
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!--sidebar item end-->
-                    </form>
-                </div>
-                <div class="col-sm-9">
-                    <div class="category-product main_product_inner">
-                        @foreach ($products as $key => $value)
-                            <div class="product_item wist_item  wow fadeInDown" data-wow-duration="1.5s"
-                                data-wow-delay="0.{{ $key }}s">
-                                <div class="product_item_inner">
-                                    @if($value->old_price)
-                                    <div class="sale-badge">
-                                        <div class="sale-badge-inner">
-                                            <div class="sale-badge-box">
-                                                <span class="sale-badge-text">
-                                                    <p> @php $discount=(((($value->old_price)-($value->new_price))*100) / ($value->old_price)) @endphp {{ number_format($discount, 0) }}%</p>
-                                                    ছাড়
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    @endif
-                                    <div class="pro_img">
-                                        <a href="{{ route('product', $value->slug) }}">
-                                            <img src="{{ asset($value->image ? $value->image->image : '') }}"
-                                                alt="{{ $value->name }}" />
-                                        </a>
-
-                                    </div>
-                                    <div class="pro_des">
-                                        <div class="pro_name">
-                                            <a
-                                                href="{{ route('product', $value->slug) }}">{{ Str::limit($value->name, 80) }}</a>
-                                        </div>
-                                        <div class="pro_price">
-                                            <p>
-                                                <del>৳ {{ $value->old_price }}</del>
-                                                ৳ {{ $value->new_price }} @if ($value->old_price)
-                                                @endif
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                @if (!$value->prosizes->isEmpty() || !$value->procolors->isEmpty())
-                                    <div class="pro_btn">
-                                       <div class="cart_btn">
-                                <a href="{{ route('product',$value->slug) }}" class="addcartbutton">কার্ট</a>
-                            </div>
-                                        <div class="cart_btn order_button">
-                                            <a href="{{ route('product', $value->slug) }}"
-                                                class="addcartbutton">অর্ডার</a>
-                                        </div>
-
-                                    </div>
-                                @else
-                                    <div class="pro_btn">
-                                        
-                                        <form action="{{ route('cart.store') }}" method="POST">
-                                            @csrf
-                                            <input type="hidden" name="id" value="{{ $value->id }}" />
-                                            <input type="hidden" name="qty" value="1" />
-                                            <button type="submit">অর্ডার</button>
-                                        </form>
-                                    </div>
-                                @endif
-
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-sm-12">
-                    <div class="custom_paginate">
-                        {{ $products->links('pagination::bootstrap-4') }}
-
-                    </div>
-                </div>
-            </div>
+<div class="fashion-container listing-wrap">
+    <div class="listing-head">
+        <div><h1>{{ $category->name }}</h1><span class="count">{{ $products->total() }} products found</span></div>
+        <div class="head-tools">
+            <button class="filter-mobile" id="toggle-filter"><i class="fa fa-sliders"></i> Filter</button>
+            <form class="d-inline"><select class="listing-sort" name="sort" onchange="this.form.submit()"><option value="1" @selected(request('sort')==1)>Latest</option><option value="3" @selected(request('sort')==3)>Price High to Low</option><option value="4" @selected(request('sort')==4)>Price Low to High</option><option value="5" @selected(request('sort')==5)>Name A-Z</option></select></form>
         </div>
-    </section>
-    <section class="homeproduct">
-        <div class="container">
-            <div class="row">
-                <div class="col-sm-12">
-                    <div class="meta_des">
-                        {!! $category->meta_description !!}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
+    </div>
+    <div class="listing-layout">
+        <aside class="filter-card" id="filter-panel">
+            <div class="filter-block"><h6>Subcategories</h6><div class="filter-links">@foreach($subcategories as $sub)<a href="{{ route('subcategory',$sub->slug) }}">{{ $sub->subcategoryName }}</a>@endforeach</div></div>
+            <div class="filter-block"><h6>Price Range</h6><form><div class="d-flex gap-2"><input class="form-control form-control-sm" name="min_price" value="{{ request('min_price') }}" placeholder="Min"><input class="form-control form-control-sm" name="max_price" value="{{ request('max_price') }}" placeholder="Max"></div><button class="btn btn-sm w-100 mt-2" style="background:var(--green);color:#fff;border:0;font-weight:800">Apply</button></form></div>
+        </aside>
+        <section>
+            <div class="listing-grid">@forelse($products as $product)@include('frontEnd.layouts.pages.partials.product-card-v2', ['product'=>$product])@empty<div class="empty-state" style="grid-column:1/-1"><i class="fa fa-box-open" style="font-size:34px;color:var(--green);margin-bottom:10px"></i><h5 class="fw-bold">এখানে কোনো পণ্য পাওয়া যায়নি</h5><p class="mb-1">অন্য ক্যাটাগরি থেকে বাছাই করুন।</p><a class="btn mt-2" style="background:var(--green);color:#fff;font-weight:800" href="{{ route('home') }}">হোমে যান</a></div>@endforelse</div>
+            @if($products->hasPages())<div class="pager">{{ $products->withQueryString()->links('pagination::bootstrap-4') }}</div>@endif
+        </section>
+    </div>
+</div>
 @endsection
-@push('script')
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js"></script>
-    <script>
-        $("#price-range").click(function() {
-            $(".price-submit").submit();
-        })
-        $(".form-attribute").on('change click',function(){
-            $(".attribute-submit").submit();
-        })
-        $(".sort").change(function() {
-            $(".sort-form").submit();
-        })
-        $(".form-checkbox").change(function() {
-            $(".subcategory-submit").submit();
-        })
-    </script>
-    <script>
-        $(function() {
-            $("#price-range").slider({
-                step: 5,
-                range: true,
-                min: {{ $min_price }},
-                max: {{ $max_price }},
-                values: [
-                    {{ request()->get('min_price') ? request()->get('min_price') : $min_price }},
-                    {{ request()->get('max_price') ? request()->get('max_price') : $max_price }}
-                ],
-                slide: function(event, ui) {
-                    $("#min_price").val(ui.values[0]);
-                    $("#max_price").val(ui.values[1]);
-                }
-            });
-            $("#min_price").val({{ request()->get('min_price') ? request()->get('min_price') : $min_price }});
-            $("#max_price").val({{ request()->get('max_price') ? request()->get('max_price') : $max_price }});
-            $("#priceRange").val($("#price-range").slider("values", 0) + " - " + $("#price-range").slider("values",
-                1));
-
-            $("#mobile-price-range").slider({
-                step: 5,
-                range: true,
-                min: {{ $min_price }},
-                max: {{ $max_price }},
-                values: [
-                    {{ request()->get('min_price') ? request()->get('min_price') : $min_price }},
-                    {{ request()->get('max_price') ? request()->get('max_price') : $max_price }}
-                ],
-                slide: function(event, ui) {
-                    $("#min_price").val(ui.values[0]);
-                    $("#max_price").val(ui.values[1]);
-                }
-            });
-            $("#min_price").val({{ request()->get('min_price') ? request()->get('min_price') : $min_price }});
-            $("#max_price").val({{ request()->get('max_price') ? request()->get('max_price') : $max_price }});
-            $("#priceRange").val($("#price-range").slider("values", 0) + " - " + $("#price-range").slider("values",
-                1));
-
-        });
-    </script>
-@endpush
+@push('script')<script>$('#toggle-filter').on('click',function(){$('#filter-panel').toggleClass('open')})</script>@endpush

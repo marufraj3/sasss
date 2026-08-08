@@ -2482,9 +2482,9 @@ CREATE TABLE `payment_gateways` (
 -- Dumping data for table `payment_gateways`
 --
 
+-- Payment credentials intentionally removed. Configure live credentials in Admin → Payment Gateway after deployment.
 INSERT INTO `payment_gateways` (`id`, `type`, `app_key`, `app_secret`, `username`, `password`, `base_url`, `success_url`, `return_url`, `prefix`, `status`, `created_at`, `updated_at`) VALUES
-(1, 'bkash', 'w5CHBl2PasU0pWKAAoyz1ADGtc', 'hh9v0N1cmJcITiMNiFgLkp4NmYnKfLMTcsnyOfFf2d5eMLe56cMH', '01319911688', '^FI],6n?b08', 'https://tokenized.pay.bka.sh/v1.2.0-beta', 'https://bdshopy.com/payment-success', 'https://bdshopy.com.com/payment-cancel', NULL, 1, '2024-02-06 11:29:46', '2024-11-22 12:47:30'),
-(2, 'shurjopay', '', '', 'sp_sandbox', 'pyyk97hu&6u6', 'https://sandbox.shurjopayment.com', 'https://bdshopy.com/payment-success', 'https://bdshopy.com.com/payment-cancel', 'NOK', 0, '2024-02-06 11:29:46', '2024-11-22 13:02:40');
+(1, 'bkash', '', '', '', '', '', '', '', NULL, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -4210,3 +4210,6 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+-- IMPORTANT: After importing this legacy dump, import database/phpmyadmin_production_upgrade.sql
+-- to add the current production tables, POS fields, promotions, CRM, tracking and analytics schema.

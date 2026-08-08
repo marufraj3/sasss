@@ -37,4 +37,8 @@ class Order extends Model
     {
         return $this->belongsTo(User::class,'user_id');
     }
+    public function courierShipment()
+    {
+        return $this->hasOne(CourierShipment::class);
+    }
 }

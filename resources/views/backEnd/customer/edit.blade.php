@@ -101,6 +101,15 @@
                     <!-- col-end -->
                     <div class="col-sm-6 mb-3">
                         <div class="form-group">
+                            <label for="tag_ids" class="form-label">CRM Tags</label>
+                            <select id="tag_ids" class="form-control select2" name="tag_ids[]" multiple="multiple">
+                                @foreach($tags as $tag)<option value="{{ $tag->id }}" @selected($edit_data->tags->contains($tag->id))>{{ $tag->name }}</option>@endforeach
+                            </select>
+                            <small class="text-muted">Use tags such as VIP, repeat buyer, wholesale or high-risk.</small>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <div class="form-group">
                             <label for="status" class="d-block">Status</label>
                             <label class="switch">
                               <input type="checkbox" value="1" name="status" @if($edit_data->status==1)checked @endif>

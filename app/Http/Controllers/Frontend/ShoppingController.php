@@ -8,6 +8,7 @@ use App\Models\Product;
 use Toastr;
 use Cart;
 use DB;
+use App\Services\ProductEventTracker;
 class ShoppingController extends Controller
 {
 
@@ -29,46 +30,90 @@ class ShoppingController extends Controller
 
     public function cart_store(Request $request)
     {
-        $product = Product::where(['id' => $request->id])->first();
+        $this->addProductToCart($request);
+        Toastr::success('Product successfully added to cart', 'Success!');
+
+        // Product details exposes both actions: keep shopping for "add to cart",
+        // or go straight to checkout for "buy now".
+        if ($request->has('add_cart')) {
+            return back();
+        }
+
+        return redirect()->route('customer.checkout');
+    }
+
+    /** Secure JSON endpoint used by conversion landing pages for multi-product carts. */
+    public function campaign_cart_store(Request $request)
+    {
+        $this->addProductToCart($request);
+
+        return response()->json([
+            'message' => 'Product added to cart.',
+            'count' => Cart::instance('shopping')->count(),
+            'checkout_url' => route('customer.checkout'),
+        ]);
+    }
+
+    private function addProductToCart(Request $request): void
+    {
+        $data = $request->validate([
+            'id' => ['required', 'integer', 'exists:products,id'],
+            'qty' => ['nullable', 'integer', 'min:1', 'max:20'],
+            'product_size' => ['nullable', 'string', 'max:100'],
+            'product_color' => ['nullable', 'string', 'max:100'],
+            'pro_unit' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $product = Product::where(['id' => $data['id'], 'status' => 1])->with('image')->firstOrFail();
+        abort_if((int) $product->stock < 1, 422, 'This product is currently out of stock.');
+
         Cart::instance('shopping')->add([
             'id' => $product->id,
             'name' => $product->name,
-            'qty' => $request->qty,
+            'qty' => $data['qty'] ?? 1,
             'price' => $product->new_price,
             'options' => [
                 'slug' => $product->slug,
-                'image' => $product->image->image,
-                'old_price' => $product->new_price,
+                'image' => optional($product->image)->image,
+                'old_price' => $product->old_price,
                 'purchase_price' => $product->purchase_price,
-                'product_size'=>$request->product_size,
-                'product_color'=>$request->product_color,
-                'pro_unit'=>$request->pro_unit,
+                'product_size' => $data['product_size'] ?? null,
+                'product_color' => $data['product_color'] ?? null,
+                'pro_unit' => $data['pro_unit'] ?? null,
             ],
         ]);
-
-        Toastr::success('Product successfully add to cart', 'Success!');
-        return redirect()->route('customer.checkout');
-        
+        app(ProductEventTracker::class)->record($product->id, 'add_to_cart');
     }
+    public function cart_show()
+    {
+        $data = Cart::instance('shopping')->content();
+        return view('frontEnd.layouts.pages.cart', compact('data'));
+    }
+
     public function cart_remove(Request $request)
     {
-        $remove = Cart::instance('shopping')->update($request->id, 0);
+        $data = $request->validate(['id' => ['required', 'string']]);
+        Cart::instance('shopping')->update($data['id'], 0);
         $data = Cart::instance('shopping')->content();
         return view('frontEnd.layouts.ajax.cart', compact('data'));
     }
     public function cart_increment(Request $request)
     {
-        $item = Cart::instance('shopping')->get($request->id);
-        $qty = $item->qty + 1;
-        $increment = Cart::instance('shopping')->update($request->id, $qty);
+        $data = $request->validate(['id' => ['required', 'string']]);
+        $item = Cart::instance('shopping')->get($data['id']);
+        abort_unless($item, 404);
+        $product = Product::where(['id' => $item->id, 'status' => 1])->firstOrFail();
+        abort_if($item->qty >= $product->stock, 422, 'Requested quantity is unavailable.');
+        Cart::instance('shopping')->update($data['id'], $item->qty + 1);
         $data = Cart::instance('shopping')->content();
         return view('frontEnd.layouts.ajax.cart', compact('data'));
     }
     public function cart_decrement(Request $request)
     {
-        $item = Cart::instance('shopping')->get($request->id);
-        $qty = $item->qty - 1;
-        $decrement = Cart::instance('shopping')->update($request->id, $qty);
+        $data = $request->validate(['id' => ['required', 'string']]);
+        $item = Cart::instance('shopping')->get($data['id']);
+        abort_unless($item, 404);
+        Cart::instance('shopping')->update($data['id'], max(0, $item->qty - 1));
         $data = Cart::instance('shopping')->content();
         return view('frontEnd.layouts.ajax.cart', compact('data'));
     }

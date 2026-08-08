@@ -67,4 +67,18 @@ class Product extends Model
     {
         return $this->hasOne(Productcolor::class, 'product_id');
     }
+
+    public function wishlists()
+    {
+        return $this->hasMany(Wishlist::class);
+    }
+
+    /** Admin-curated cross-sell products displayed on this product's detail page. */
+    public function recommendedProducts()
+    {
+        return $this->belongsToMany(self::class, 'product_recommendations', 'product_id', 'recommended_product_id')
+            ->withPivot('sort_order')
+            ->withTimestamps()
+            ->orderBy('product_recommendations.sort_order');
+    }
 }

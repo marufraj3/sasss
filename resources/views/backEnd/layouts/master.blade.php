@@ -262,6 +262,9 @@
                 <div class="collapse" id="sidebar-orders">
                   <ul class="nav-second-level">
                     <li>
+                      <a href="{{route('admin.orders.board')}}"><i data-feather="trello"></i> Operations Board</a>
+                    </li>
+                    <li>
                       <a href="{{route('admin.orders',['slug'=>'all'])}}"><i data-feather="file-plus"></i> All Order</a>
                     </li>
                     @foreach($orderstatus as $value)
@@ -350,6 +353,15 @@
                     <li>
                       <a href="{{route('campaign.index')}}"><i data-feather="file-plus"></i> Campaign</a>
                     </li>
+                    <li>
+                      <a href="{{route('coupons.index')}}"><i data-feather="tag"></i> Coupons</a>
+                    </li>
+                    <li>
+                      <a href="{{route('abandoned-carts.index')}}"><i data-feather="shopping-cart"></i> Abandoned Carts</a>
+                    </li>
+                    <li>
+                      <a href="{{route('return-requests.index')}}"><i data-feather="corner-up-left"></i> Return Requests</a>
+                    </li>
                   </ul>
                 </div>
               </li>
@@ -374,6 +386,12 @@
                     </li>
                     <li>
                       <a href="{{route('customers.index')}}"><i data-feather="file-plus"></i> Customers</a>
+                    </li>
+                    <li>
+                      <a href="{{route('customer-tags.index')}}"><i data-feather="tag"></i> Customer CRM Tags</a>
+                    </li>
+                    <li>
+                      <a href="{{route('analytics.products')}}"><i data-feather="bar-chart-2"></i> Product Analytics</a>
                     </li>
                   </ul>
                 </div>
@@ -406,7 +424,10 @@
                       <a href="{{route('shippingcharges.index')}}"><i data-feather="file-plus"></i> Shipping Charge</a>
                     </li>
                     <li>
-                      <a href="{{route('orderstatus.index')}}"><i data-feather="file-plus"></i> Order Status</a>
+                      <a href="{{route('shipping-promotion.edit')}}"><i data-feather="truck"></i> Free Delivery Offer</a>
+                    </li>
+                    <li>
+                      <a href="{{route('orderstatus.index')}}><i data-feather="file-plus"></i> Order Status</a>
                     </li>
                   </ul>
                 </div>
@@ -428,6 +449,9 @@
                     </li>
                     <li>
                       <a href="{{route('courierapi.manage')}}"><i data-feather="file-plus"></i> Courier API</a>
+                    </li>
+                    <li>
+                      <a href="{{route('courier-shipments.index')}}"><i data-feather="truck"></i> Courier Shipments</a>
                     </li>
                   </ul>
                 </div>

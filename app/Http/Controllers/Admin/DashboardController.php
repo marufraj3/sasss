@@ -3,85 +3,132 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use App\Models\Order;
-use App\Models\User;
-use App\Models\Product;
 use App\Models\Customer;
+use App\Models\Order;
+use App\Models\OrderDetails;
+use App\Models\OrderStatus;
+use App\Models\Product;
+use App\Models\User;
 use Carbon\Carbon;
-use Session;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Session;
 use Toastr;
 use Auth;
-use DB;
+
 class DashboardController extends Controller
 {
-    public function __construct()
+    public function dashboard()
     {
-        // $this->middleware('auth')->except(['locked','unlocked']);
-    }
-    public function dashboard(){
+        $today = Carbon::today();
+        $monthStart = now()->startOfMonth();
+        $previousMonthStart = now()->subMonthNoOverflow()->startOfMonth();
+        $previousMonthEnd = now()->subMonthNoOverflow()->endOfMonth();
+        $completedStatus = OrderStatus::where('slug', 'completed')->value('id') ?? 6;
+
         $total_order = Order::count();
-        $today_order = Order::where('created_at', '>=', Carbon::today())->count();
+        $today_order = Order::whereDate('created_at', $today)->count();
         $total_product = Product::count();
         $total_customer = Customer::count();
-        $latest_order = Order::latest()->limit(5)->with('customer','product','product.image')->get();
-        $latest_customer = Customer::latest()->limit(5)->get();
-        $today_delivery = Order::where(['order_status'=>'5'])->where('created_at', '>=', Carbon::today())->count();
-        $total_delivery = Order::where(['order_status'=>'5'])->count();
-        $last_week = Order::where(['order_status'=>'5'])->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])->count();
-        $last_month = Order::where(['order_status'=>'5'])->whereMonth('created_at', '=', Carbon::now()->subMonth()->month)->count();
-        $monthly_sale = Order::select(DB::raw('DATE(created_at) as date','created_at'))->selectRaw("SUM(amount) as amount")->where(['order_status'=>'5'])->groupBy('date')->limit(30)->get();
-        return view('backEnd.admin.dashboard',compact('total_order','today_order','total_product','total_customer','latest_order','latest_customer','today_delivery','total_delivery','last_week','last_month','monthly_sale'));
+        $pendingOrders = Order::where('order_status', OrderStatus::where('slug', 'pending')->value('id') ?? 1)->count();
+        $todayCancelled = Order::where('order_status', OrderStatus::where('slug', 'cancelled')->value('id') ?? 7)->whereDate('updated_at', $today)->count();
+        $todayShipped = Order::where('order_status', OrderStatus::where('slug', 'in-courier')->value('id') ?? 5)->whereDate('updated_at', $today)->count();
+        $todayProcessing = Order::where('order_status', OrderStatus::where('slug', 'processing')->value('id') ?? 2)->whereDate('updated_at', $today)->count();
+        $lowStockProducts = Product::where('status', 1)->where('stock', '<=', 5)->orderBy('stock')->limit(6)->get(['id', 'name', 'stock', 'slug']);
+        $lowStockCount = Product::where('status', 1)->where('stock', '<=', 5)->count();
+
+        $totalRevenue = Order::where('order_status', $completedStatus)->sum('amount');
+        $monthRevenue = Order::where('order_status', $completedStatus)->where('created_at', '>=', $monthStart)->sum('amount');
+        $previousMonthRevenue = Order::where('order_status', $completedStatus)->whereBetween('created_at', [$previousMonthStart, $previousMonthEnd])->sum('amount');
+        $todayRevenue = Order::where('order_status', $completedStatus)->whereDate('created_at', $today)->sum('amount');
+        $revenueChange = $previousMonthRevenue > 0 ? round((($monthRevenue - $previousMonthRevenue) / $previousMonthRevenue) * 100, 1) : null;
+
+        $latest_order = Order::with(['customer', 'status'])->latest()->limit(8)->get();
+        $latest_customer = Customer::latest()->limit(6)->get();
+        $ordersByStatus = OrderStatus::where('status', 1)->orderBy('id')->get()->map(function ($status) {
+            $status->order_count = Order::where('order_status', $status->id)->count();
+            return $status;
+        });
+
+        $topProducts = OrderDetails::query()
+            ->select('product_id', 'product_name', DB::raw('SUM(qty) as units_sold'), DB::raw('SUM(qty * sale_price) as sales_total'))
+            ->whereHas('order', fn ($query) => $query->where('order_status', $completedStatus))
+            ->groupBy('product_id', 'product_name')
+            ->orderByDesc('units_sold')
+            ->limit(5)
+            ->get();
+
+        $salesByDay = Order::selectRaw('DATE(created_at) as sale_date, SUM(amount) as revenue, COUNT(*) as orders')
+            ->where('order_status', $completedStatus)
+            ->where('created_at', '>=', now()->subDays(29)->startOfDay())
+            ->groupBy('sale_date')
+            ->orderBy('sale_date')
+            ->get()
+            ->keyBy('sale_date');
+
+        $chartLabels = [];
+        $chartRevenue = [];
+        $chartOrders = [];
+        foreach (range(29, 0) as $daysAgo) {
+            $date = now()->subDays($daysAgo);
+            $key = $date->toDateString();
+            $chartLabels[] = $date->format('d M');
+            $chartRevenue[] = (int) optional($salesByDay->get($key))->revenue;
+            $chartOrders[] = (int) optional($salesByDay->get($key))->orders;
+        }
+
+        return view('backEnd.admin.dashboard', compact(
+            'total_order', 'today_order', 'total_product', 'total_customer', 'pendingOrders', 'todayCancelled', 'todayShipped', 'todayProcessing', 'lowStockProducts', 'lowStockCount',
+            'totalRevenue', 'monthRevenue', 'todayRevenue', 'revenueChange', 'latest_order',
+            'latest_customer', 'ordersByStatus', 'topProducts', 'chartLabels', 'chartRevenue', 'chartOrders'
+        ));
     }
-    public function changepassword(){
+
+    public function changepassword()
+    {
         return view('backEnd.admin.changepassword');
     }
-     public function newpassword(Request $request)
+
+    public function newpassword(Request $request)
     {
         $this->validate($request, [
-            'old_password'=>'required',
-            'new_password'=>'required',
-            'confirm_password' => 'required_with:new_password|same:new_password|'
+            'old_password' => 'required',
+            'new_password' => 'required|min:8',
+            'confirm_password' => 'required_with:new_password|same:new_password',
         ]);
 
-        $user = User::find(Auth::id());
-        $hashPass = $user->password;
-
-        if (Hash::check($request->old_password, $hashPass)) {
-
-            $user->fill([
-                'password' => Hash::make($request->new_password)
-            ])->save();
-
+        $user = User::findOrFail(Auth::id());
+        if (Hash::check($request->old_password, $user->password)) {
+            $user->update(['password' => Hash::make($request->new_password)]);
             Toastr::success('Success', 'Password changed successfully!');
             return redirect()->route('dashboard');
-        }else{
-            Toastr::error('Failed', 'Old password not match!');
-            return back();
         }
-    }
-    public function locked(){
-        // only if user is logged in
-        
-            Session::put('locked', true);
-            return view('backEnd.auth.locked');
-        
 
-        return redirect()->route('login');
+        Toastr::error('Failed', 'Old password does not match!');
+        return back();
+    }
+
+    public function locked()
+    {
+        Session::put('locked', true);
+        return view('backEnd.auth.locked');
     }
 
     public function unlocked(Request $request)
     {
-        if(!Auth::check())
+        $request->validate(['password' => 'required']);
+        if (! Auth::check()) {
             return redirect()->route('login');
-        $password = $request->password;
-        if(Hash::check($password,Auth::user()->password)){
+        }
+
+        if (Hash::check($request->password, Auth::user()->password)) {
             Session::forget('locked');
             Toastr::success('Success', 'You are logged in successfully!');
             return redirect()->route('dashboard');
         }
-        Toastr::error('Failed', 'Your password not match!');
+
+        Toastr::error('Failed', 'Your password does not match!');
         return back();
     }
 }
